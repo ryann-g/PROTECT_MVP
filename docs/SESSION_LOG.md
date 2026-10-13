@@ -470,3 +470,24 @@ Current state: protect_core = all-5 + TFT (USE_*=1, 26%); serial_check =
   listen for module boot chatter, re-sync x4, then a CONTROLLED second sweep.
   Re-lock after silence = module rebooting itself = power delivery verdict on
   screen. 20% clean. Awaiting upload + D6/cap/cable answers.
+
+## 49. Day-close Q&A + GitHub push (2026-10-13 eve, tomorrow = body setup)
+  Read all 8 markdowns + this log for user questions. Verified temp sensor =
+  Shopee DS18B20 waterproof 100CM + steel probe + terminal adapter (luckcute.ph
+  P88-93): matches code OneWire DATA14 + 4.7k + 11-bit + -127/85 filters
+  (config.h:28, sensors.cpp, test_ds18b20.ino:2-3). Confirmed body-temp use
+  doable: contact armpit/fist 1-3min to equilibrium, offset-calibrate vs
+  reference, waterproof = sweat/alcohol-proof not water-only. Live debug:
+  protect_serial showed T:0.0 + RTC:-- + IR:423 + MPU:OK + GSM:OK ->
+  diagnosed DS18B20/RTC legs unfound (wire/pull-up/loose screws, not code;
+  hasDs=false holds 0.0 + MEASURING correctly). TFT Q: serial text does NOT
+  fit TFT (serial build TFT-disabled); protect_core draws same data as
+  480x320 graphics (WELL/CHECK/ALERT/WAIT + color bar) for RPi 3.5" ILI9486.
+  Gave ASCII screen samples + integration guide (driver + User_Setup.h +
+  hand-wire + 5V ext, 30min-2h). Pushed to GitHub public
+  https://github.com/ryann-g/PROTECT_MVP (47 files, 3217 lines, main) with
+  real +63 numbers KEPT per user choice (warned: spam risk, scrub later if
+  needed). TOMORROW body setup: mount in ABS case, sensor windows open,
+  SOS button 34+GND+10k->3V3 then USE_SOS_BUTTON=1, buzzer GPIO13 check,
+  frozen-rig DIO+EN ritual, full finger + FALL-shake, RTC adjust, DS18B20
+  leg to devices:1, SD card + USE_SDCARD=1 for paper CSV.
