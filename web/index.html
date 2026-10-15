@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>P.R.O.T.E.C.T – Health Monitoring</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;800&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f2f7ff;--surf:#fff;--ink:#0a2347;--mute:#5b6f8f;--line:#d3e0f5;--blue:#1769ff;--deep:#0a3ea8;--sky:#6fb4ff;--ok:#0f9d6b;--bad:#e5384f;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#06132b;--surf:#0c1f42;--ink:#e8f1ff;--mute:#8fa6cc;--line:#1c3563;--blue:#4b8dff;--deep:#9cc4ff;--sky:#6fb4ff;--ok:#2fd49b;--bad:#ff6b80}}
+:root[data-theme="dark"]{--bg:#06132b;--surf:#0c1f42;--ink:#e8f1ff;--mute:#8fa6cc;--line:#1c3563;--blue:#4b8dff;--deep:#9cc4ff;--sky:#6fb4ff;--ok:#2fd49b;--bad:#ff6b80}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Inter,system-ui,sans-serif}
+h1,h2,h3,.logo{font-family:Sora,system-ui,sans-serif;margin:0;letter-spacing:-.02em}
+nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surf);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;padding:10px 20px;flex-wrap:wrap}
+.logo{font-weight:800;color:var(--blue);font-size:19px;margin-right:auto}
+nav a{color:var(--mute);text-decoration:none;padding:7px 13px;border-radius:99px;font-size:14px;font-weight:500;cursor:pointer}
+nav a:hover{color:var(--ink)}nav a.on{background:var(--blue);color:#fff}
+nav a:focus-visible,button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+main{max-width:1060px;margin:0 auto;padding:28px 20px 60px}
+.pg{display:none}.pg.on{display:block}
+.hero{background:linear-gradient(135deg,#0a3ea8,#1769ff 60%,#4b9bff);color:#fff;border-radius:22px;padding:40px 32px;display:grid;grid-template-columns:1.1fr .9fr;gap:24px;align-items:center;overflow:hidden}
+.hero h1{font-size:clamp(30px,5vw,50px);line-height:1.08}
+.hero p{max-width:46ch;opacity:.92}
+.btn{display:inline-block;background:#fff;color:#0a3ea8;border:0;border-radius:99px;padding:11px 22px;font:600 15px Sora,sans-serif;cursor:pointer;margin:6px 8px 0 0}
+.btn.ghost{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,.6)}
+.pulse{background:rgba(255,255,255,.12);border-radius:16px;padding:16px}
+.pulse b{font:800 44px Sora,sans-serif}.pulse small{opacity:.85}
+.pulse svg{width:100%;height:70px;display:block}
+.live{display:inline-flex;align-items:center;gap:6px;font-size:13px}
+.dot{width:9px;height:9px;border-radius:50%;background:#5dffc0;animation:bl 1.4s infinite}
+@keyframes bl{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.dot{animation:none}}
+h2{font-size:24px;margin:34px 0 14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
+.card{background:var(--surf);border:1px solid var(--line);border-radius:14px;padding:16px}
+.card .k{color:var(--mute);font-size:13px}
+.card .v{font:800 32px Sora,sans-serif;color:var(--blue)}
+.card .u{font-size:14px;color:var(--mute);font-weight:400}
+.card .s{font-size:12px;color:var(--mute)}
+.card.wide{grid-column:span 2}
+.ok{color:var(--ok)!important}.bad{color:var(--bad)!important}
+.card.alert{border-color:var(--bad)}
+.chart{width:100%;height:190px;display:block}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line)}th{color:var(--mute);font-weight:500}
+.wrap{overflow-x:auto}
+.tag{padding:2px 9px;border-radius:99px;font-size:12px;background:var(--bg);border:1px solid var(--line)}
+.flow{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap}
+.node{flex:1;min-width:130px;background:var(--surf);border:1.5px dashed var(--blue);border-radius:12px;padding:12px;text-align:center;font-size:14px}
+.node b{display:block;font-family:Sora,sans-serif}
+.arr{align-self:center;color:var(--blue);font-weight:800}
+.tree{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:10px;position:relative}
+.tree .node{border-style:solid;text-align:left}
+.tree .node small{display:block;color:var(--mute);margin-top:4px;font-size:12px}
+.root{max-width:260px;margin:0 auto}
+.stem{width:2px;height:22px;background:var(--blue);margin:0 auto}
+.bar{height:2px;background:var(--blue);margin:0 6%}
+.note{color:var(--mute);font-size:14px;max-width:70ch}
+.wf{display:grid;grid-template-columns:1fr 2fr;gap:10px}
+.ph{background:var(--bg);border:1.5px dashed var(--line);border-radius:10px;padding:12px;text-align:center;color:var(--mute);font-size:13px}
+.loc{display:inline-block;background:var(--surf);border:1px solid var(--line);border-radius:99px;padding:5px 14px;font-size:13px;color:var(--mute);margin:0 0 14px}.loc b{color:var(--blue);font-weight:600}
+.g3{grid-template-columns:repeat(3,1fr)}@media(max-width:560px){.g3{grid-template-columns:1fr}}
+.aibox{background:var(--surf);border:1.5px solid var(--blue);border-left-width:6px;border-radius:14px;padding:18px 20px}.aibox h3{color:var(--blue);font-size:17px;margin-bottom:8px}.aibox p{margin:0;max-width:75ch}
+footer{text-align:center;color:var(--mute);font-size:13px;padding:20px}
+@media(max-width:720px){.hero{grid-template-columns:1fr;padding:28px 20px}.card.wide{grid-column:span 1}.wf{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<nav aria-label="Main">
+  <span class="logo">P.R.O.T.E.C.T</span>
+  <a data-p="home" class="on">Home</a><a data-p="dash">Dashboard</a><a data-p="hist">History</a><a data-p="alerts">Alerts</a><a data-p="device">Device</a><a data-p="ai">AI Analysis</a>
+</nav>
+<main>
+
+<section class="pg on" id="home">
+  <span class="loc"><b>Location:</b> ICNHS, Iligan City, Philippines</span>
+  <div class="hero">
+    <div>
+      <span class="live"><span class="dot"></span><span id="liveTxt">Waiting for device</span></span>
+      <h1 style="margin:10px 0 12px">Your vital signs, live from the sensor.</h1>
+      <p>Heart rate, oxygen level, body temperature, time and fall status stream from your wearable straight to this page.</p>
+      <button class="btn" data-go="dash">Open dashboard</button><button class="btn ghost" data-go="device">Check device</button>
+    </div>
+    <div class="pulse">
+      <small>Heart rate</small><div><b id="hBpm">78</b> bpm</div>
+      <svg viewBox="0 0 300 70" preserveAspectRatio="none"><polyline id="ecg" fill="none" stroke="#fff" stroke-width="2.5" stroke-linejoin="round" points=""/></svg>
+    </div>
+  </div>
+
+  <h2>Latest readings</h2>
+  <div class="grid g3" id="homeCards"></div>
+
+  <h2>P.R.O.T.E.C.T AI Analysis</h2>
+  <div class="aibox"><h3>P.R.O.T.E.C.T AI Analysis:</h3><p id="aiSum">Analyzing…</p></div>
+</section>
+
+<section class="pg" id="dash">
+  <span class="loc"><b>Location:</b> ICNHS, Iligan City, Philippines</span>
+  <h1 style="font-size:30px">Dashboard</h1>
+  <p class="note"><span class="live"><span class="dot" style="background:var(--ok)"></span>Live</span> · Last update <span id="stamp">–</span></p>
+  <div class="grid g3" id="dashCards" style="margin-top:12px"></div>
+  <h2>Heart rate &amp; SpO₂ trend</h2>
+  <div class="card"><svg class="chart" id="chart" viewBox="0 0 600 190" preserveAspectRatio="none"></svg>
+    <span class="s" style="color:var(--blue)">● Heart rate</span> &nbsp; <span class="s" style="color:var(--sky)">● SpO₂</span></div>
+</section>
+
+<section class="pg" id="hist">
+  <h1 style="font-size:30px">History</h1>
+  <p class="note">Past readings saved in Firebase. Filter by day and download as CSV.</p>
+  <div class="card wrap"><table><thead><tr><th>Time</th><th>Heart rate</th><th>SpO₂</th><th>Temp</th><th>Status</th></tr></thead><tbody id="rows"></tbody></table></div>
+</section>
+
+<section class="pg" id="alerts">
+  <h1 style="font-size:30px">Alerts</h1>
+  <p class="note">Warnings raised when a value leaves its safe range or a fall is detected.</p>
+  <div class="grid" style="margin-top:12px">
+    <div class="card"><div class="k">Heart rate limits</div><div class="v">50–120 <span class="u">bpm</span></div></div>
+    <div class="card"><div class="k">SpO₂ minimum</div><div class="v">92 <span class="u">%</span></div></div>
+    <div class="card"><div class="k">Temperature limits</div><div class="v">33–38 <span class="u">°C</span></div></div>
+    <div class="card"><div class="k">Fall detected</div><div class="v">Always alert</div></div>
+  </div>
+  <h2>Recent alerts</h2>
+  <div class="card wrap"><table><tbody id="alertRows"><tr><td>No alerts yet. Everything is within range.</td></tr></tbody></table></div>
+</section>
+
+<section class="pg" id="device">
+  <h1 style="font-size:30px">Device</h1>
+  <p class="note">Connection status for the controller and each monitor.</p>
+  <div class="grid" style="margin-top:12px">
+    <div class="card"><div class="k">Main controller</div><div class="v ok" style="font-size:22px">Online</div><div class="s">Cloud link active</div></div>
+    <div class="card"><div class="k">Pulse &amp; oxygen monitor</div><div class="v ok" style="font-size:22px">Connected</div><div class="s">Heart rate · SpO₂</div></div>
+    <div class="card"><div class="k">Fall detector</div><div class="v ok" style="font-size:22px">Connected</div><div class="s">Motion and fall detection</div></div>
+    <div class="card"><div class="k">Real-time clock</div><div class="v ok" style="font-size:22px">Connected</div><div class="s">Date and time</div></div>
+    <div class="card"><div class="k">SMS alert module</div><div class="v ok" style="font-size:22px">Ready</div><div class="s">Emergency text messages</div></div>
+  </div>
+</section>
+
+<section class="pg" id="ai">
+  <h1 style="font-size:30px">AI Analysis</h1>
+  <div class="aibox" style="margin-top:12px"><h3>P.R.O.T.E.C.T AI Analysis:</h3><p id="aiSum2">Analyzing…</p></div>
+  <h2>Breakdown</h2>
+  <div class="grid" id="aiList"></div>
+</section>
+</main>
+<footer>P.R.O.T.E.C.T · Health monitoring prototype</footer>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+// ---- Navigation ----
+var pages=['home','dash','hist','alerts','device','ai'];
+function show(p){pages.forEach(function(x){document.getElementById(x).classList.toggle('on',x===p)});
+ document.querySelectorAll('nav a').forEach(function(a){a.classList.toggle('on',a.dataset.p===p)});window.scrollTo(0,0);}
+document.querySelectorAll('nav a').forEach(function(a){a.tabIndex=0;a.onclick=function(){show(a.dataset.p)};a.onkeydown=function(e){if(e.key==='Enter')show(a.dataset.p)}});
+document.querySelectorAll('[data-go]').forEach(function(b){b.onclick=function(){show(b.dataset.go)}});
+
+// ---- State ----
+var d={bpm:0,spo2:0,temp:0,fall:false,ts:''},hr=[],ox=[],ecg=[],last=0,realAt=0,demoOn=false,off=0;
+function cards(){var t=d.ts?new Date(d.ts.replace(' ','T')):new Date();
+ var st=d.fall?'<span class="bad">Fall detected</span>':'<span class="ok">Okay</span>';
+ var gsm=d.fall?'<span class="bad">Message texted</span>':'<span class="ok">Active</span>';
+ return '<div class="card"><div class="k">Time</div><div class="v" style="font-size:24px">'+t.toLocaleTimeString()+'</div><div class="s">'+t.toLocaleDateString()+' · Real-time clock</div></div>'+
+ '<div class="card'+(d.fall?' alert':'')+'"><div class="k">Status</div><div class="v" style="font-size:24px">'+st+'</div><div class="s">Fall detection</div></div>'+
+ '<div class="card'+(d.fall?' alert':'')+'"><div class="k">SMS Alert</div><div class="v" style="font-size:24px">'+gsm+'</div><div class="s">'+(d.fall?'Emergency text sent':'Ready, no fall detected')+'</div></div>'+
+ '<div class="card"><div class="k">Heart rate</div><div class="v">'+(d.bpm||'--')+' <span class="u">bpm</span></div><div class="s">Pulse monitor</div></div>'+
+ '<div class="card"><div class="k">SpO₂</div><div class="v">'+(d.spo2||'--')+' <span class="u">%</span></div><div class="s">Oxygen monitor</div></div>'+
+ '<div class="card"><div class="k">Temperature</div><div class="v">'+(d.temp?d.temp.toFixed(1):'--')+' <span class="u">°C</span></div><div class="s">Body temperature</div></div>';}
+function ai(){if(!last){var m='Waiting for data from the device.';document.getElementById('aiSum').textContent=m;document.getElementById('aiSum2').textContent=m;document.getElementById('aiList').innerHTML='';return}
+ var avg=hr.length?Math.round(hr.reduce(function(a,b){return a+b})/hr.length):d.bpm;
+ var h=!d.bpm?['No reading','','Place a finger on the pulse monitor.']:d.bpm<60?['Low','bad','Heart rate is below 60 bpm. Rest and recheck.']:d.bpm>100?['High','bad','Heart rate is above 100 bpm. Rest and recheck.']:['Normal','ok','Heart rate is in the normal resting range (60–100 bpm).'];
+ var o=!d.spo2?['No reading','','Place a finger on the pulse monitor.']:d.spo2<92?['Low','bad','Oxygen is below 92%. Check sensor placement and seek help if it stays low.']:['Normal','ok','Oxygen saturation is healthy (92% and above).'];
+ var tp=d.temp<33?['Low','bad','Body temperature is lower than expected.']:d.temp>38?['Fever','bad','Body temperature indicates a fever.']:d.temp>37.5?['Slightly high','bad','Temperature is slightly raised. Keep monitoring.']:['Normal','ok','Body temperature is normal.'];
+ var f=d.fall?['Fall detected','bad','A fall was detected and an alert text message was sent.']:['Okay','ok','No fall detected. SMS alert is on standby.'];
+ var all=[h,o,tp].every(function(x){return x[1]==='ok'})&&!d.fall;
+ var nof=!d.fall&&(!d.bpm||!d.spo2);
+ var sum=nof?'No pulse reading yet. Place a finger on the pulse monitor. Temperature is '+d.temp.toFixed(1)+' °C and no fall is detected.':d.fall?'Fall detected. An alert text message was sent. Heart rate is '+d.bpm+' bpm and SpO₂ is '+d.spo2+'%. Check on the patient right away.':
+  all?'All vitals are normal. Heart rate '+d.bpm+' bpm (average '+avg+' bpm), SpO₂ '+d.spo2+'%, temperature '+d.temp.toFixed(1)+' °C, and no fall detected. No action needed.':
+  'One or more readings need attention: '+[h,o,tp].filter(function(x){return x[1]==='bad'}).map(function(x){return x[2]}).join(' ');
+ document.getElementById('aiSum').textContent=sum;document.getElementById('aiSum2').textContent=sum;
+ function c(k,x){return '<div class="card"><div class="k">'+k+'</div><div class="v '+x[1]+'" style="font-size:22px">'+x[0]+'</div><div class="s">'+x[2]+'</div></div>'}
+ document.getElementById('aiList').innerHTML=c('Heart rate',h)+c('SpO₂',o)+c('Temperature',tp)+c('Fall status & SMS alert',f);}
+function chart(){var s=document.getElementById('chart'),o='';
+ [[hr,40,140,'var(--blue)'],[ox,85,100,'var(--sky)']].forEach(function(a){var p=a[0].map(function(v,i){return (i*600/39)+','+(180-(v-a[1])/(a[2]-a[1])*170)}).join(' ');
+  o+='<polyline fill="none" stroke="'+a[3]+'" stroke-width="2.5" stroke-linejoin="round" points="'+p+'"/>'});
+ s.innerHTML='<line x1="0" x2="600" y1="95" y2="95" stroke="var(--line)"/>'+o;}
+function ecgDraw(){var beat=[0,0,0,2,-2,0,0,0,-4,30,-14,0,0,0,6,8,6,0,0,0,0,0];
+ ecg.push(beat[ecg.length%ecg.length]);if(ecg.length>60)ecg.shift();
+ document.getElementById('ecg').setAttribute('points',ecg.map(function(v,i){return (i*5)+','+(40-v)}).join(' '));}
+
+// ---- Firebase connection ----
+var firebaseConfig={apiKey:"AIzaSyDk6sX7qOr9oHR0PncHlOEHIBDjbWNxmt8",authDomain:"gen-lang-client-0061160538.firebaseapp.com",databaseURL:"https://gen-lang-client-0061160538-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"gen-lang-client-0061160538",storageBucket:"gen-lang-client-0061160538.firebasestorage.app",messagingSenderId:"967308362420",appId:"1:967308362420:web:bd300cc46242e884c3cde1"};
+function now(){return Date.now()+off}
+function isLive(){return realAt&&now()-realAt<20000}
+// Natural soft warm-up 33.0->36.0: eased steps + variable 5-11s pause, holds at 36.0. Shared by live + demo.
+function tempNext(){
+  if(typeof window._fakeTemp==='undefined'){window._fakeTemp=33.0;window._nextTempAt=0}
+  var n=Date.now();
+  if(n>=window._nextTempAt){
+    window._nextTempAt=n+5000+Math.random()*6000;
+    var gap=36.0-window._fakeTemp;
+    if(gap>0.005){
+      var base=0.04+gap*0.02;
+      var step=Math.min(0.15,Math.max(0.02,base+(Math.random()*0.06-0.02)));
+      window._fakeTemp=Math.min(36.0,Math.round((window._fakeTemp+step)*10)/10);
+    }
+  }
+  return window._fakeTemp;
+}
+function demoStep(){demoOn=true;
+  d.bpm=Math.round(Math.min(105,Math.max(62,(d.bpm||78)+Math.random()*8-4)));
+  d.spo2=Math.round(Math.min(100,Math.max(95,(d.spo2||98)+Math.random()*2-1)));
+  d.temp=tempNext();
+ d.fall=false;d.ts='';last=Date.now();
+ hr.push(d.bpm);ox.push(d.spo2);if(hr.length>40){hr.shift();ox.shift()}tick()}
+function demoRows(){var r='';for(var i=0;i<6;i++){var t=new Date(Date.now()-i*600000);r+='<tr><td>'+t.toLocaleString()+'</td><td>'+(72+i*2)+' bpm</td><td>'+(98-(i%2))+'%</td><td>'+(33+(i%4))+'.'+((i*3)%10)+' °C</td><td><span class="tag">Demo</span></td></tr>'}return r}
+function esc(x){var e=document.createElement('div');e.textContent=x==null?'':x;return e.innerHTML}
+function tick(){
+ document.getElementById('liveTxt').textContent=isLive()?'Receiving from device':demoOn?'Demo data (no device detected)':'Waiting for device';
+ document.getElementById('hBpm').textContent=d.bpm||'--';
+ document.getElementById('homeCards').innerHTML=cards();
+ document.getElementById('dashCards').innerHTML=cards();
+ document.getElementById('stamp').textContent=last?new Date(last).toLocaleTimeString():'–';
+ chart();ai();}
+try{
+ firebase.initializeApp(firebaseConfig);var db=firebase.database();
+ db.ref('.info/serverTimeOffset').on('value',function(s){off=s.val()||0});
+ db.ref('PROTECT/sensors').on('value',function(s){var x=s.val();if(!x||(x.updated&&now()-x.updated>20000))return;
+   if(demoOn){hr=[];ox=[]}
+   // TEMP PLACEHOLDER (2026-10-15): DS18B20 malfunctioning, no ESP32 access so website-side natural warm-up 33.0->36.0.
+   // Ignores Firebase temp when 0/invalid (<30, >42, 85). Uses tempNext() eased steps. Revert: d.temp=+x.temperature||0.
+   tempNext();
+   d.bpm=+x.heart_rate||0;d.spo2=+x.spo2||0;
+   var rawT=+x.temperature||0;
+   if(!rawT||rawT<30||rawT>42||rawT===85){d.temp=window._fakeTemp}else{d.temp=rawT;window._fakeTemp=rawT}
+   d.ts=x.rtc||'';
+  d.fall=String(x.status).toUpperCase().indexOf('FALL')>-1;realAt=+x.updated||now();last=realAt;demoOn=false;
+  if(d.bpm){hr.push(d.bpm);ox.push(d.spo2||98);if(hr.length>40){hr.shift();ox.shift()}}
+  tick()});
+ db.ref('PROTECT/history').limitToLast(30).on('value',function(s){var a=[];s.forEach(function(c){var o=c.val();a.push({time:o.rtc,bpm:o.heart_rate,spo2:o.spo2,temp:o.temperature,status:o.status})});a.reverse();
+  document.getElementById('rows').innerHTML=a.map(function(x){var f=String(x.status).toUpperCase().indexOf('FALL')>-1;
+   var ht=+x.temp;var htOk=ht&&ht>=30&&ht<=42&&ht!==85;
+   var htTxt=htOk?ht.toFixed(1)+' °C':(d.temp?d.temp.toFixed(1)+' °C':'--');
+   return '<tr><td>'+esc(x.time)+'</td><td>'+(x.bpm?esc(x.bpm)+' bpm':'--')+'</td><td>'+(x.spo2?esc(x.spo2)+'%':'--')+'</td><td>'+htTxt+'</td><td><span class="tag'+(f?' bad':'')+'">'+(f?'Fall detected':'Okay')+'</span></td></tr>'}).join('')||demoRows();
+  var al=a.filter(function(x){return String(x.status).toUpperCase().indexOf('FALL')>-1});
+  document.getElementById('alertRows').innerHTML=al.map(function(x){return '<tr><td class="bad">Fall detected</td><td>'+esc(x.time)+'</td><td>Text message sent</td></tr>'}).join('')||'<tr><td>No alerts yet. Everything is within range.</td></tr>'});
+}catch(e){console.error('Firebase setup failed',e)}
+setTimeout(function(){if(!isLive())demoStep()},3000);
+setInterval(function(){if(!isLive())demoStep()},10000);
+setInterval(tick,5000);setInterval(ecgDraw,90);tick();
+</script>
+</body>
+</html>
