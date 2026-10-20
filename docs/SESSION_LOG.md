@@ -1,10 +1,11 @@
 # SESSION LOG — P.R.O.T.E.C.T. 48-Hour Build (Thorough Record)
 Date: 2026-10-12 | Project folder: /home/ryan/PROTECT_MVP/ | Env: Arduino IDE, ESP32, Linux
 
-**Read me first:** the newest entry is §69 (2026-10-20) — it is the status board
-for the whole project. Sections §66-§68 are a backfill of sessions from
-2026-10-14 to 2026-10-16 that were done but never written down here.
-Sections §1-§65 run in the order they happened.
+**Read me first:** the newest entry is **§77 — the session save**, which is the
+status board for the whole project and the list of what to do next. Section §69
+is the status board as it stood at the end of the fleet phase. Sections §66-§68
+are a backfill of sessions from 2026-10-14 to 2026-10-16 that were done but
+never written down here. Sections §1-§65 run in the order they happened.
 
 ## 1. Goal
 Grade 12 research rush: finish working P.R.O.T.E.C.T. prototype in 48h, clean and accurate.
@@ -1066,3 +1067,90 @@ Current state: protect_core = all-5 + TFT (USE_*=1, 26%); serial_check =
   oximeter is the dangerous direction. The Bland-Altman panel makes the sign
   unambiguous and the paired t-test states whether the difference is
   significant, which the table does not.
+
+## 77. Session save — paper, figures and format (2026-10-20 evening)
+
+### What was produced tonight
+| Deliverable | Where |
+|---|---|
+| Figures 7-9, the flow diagrams | docs/diagrams/01-unit, 02-end-to-end, 03-website-relay (png + svg + mmd) |
+| Figure 6, the refined control block diagram | docs/diagrams/04-control-block (png + svg + mmd) |
+| Detailed variant, for the appendix | docs/diagrams/05-control-block-detailed |
+| Figure 10, the threshold-band map | docs/diagrams/06-threshold-bands (png + svg) |
+| Figure 12, the telemetry latency chart | docs/diagrams/05-telemetry-latency (png + svg) |
+| Figure 11, the agreement figure | GENERATOR READY: docs/paper/make_agreement_figure.py |
+| The revised manuscript | docs/paper/PAPER_REVISED.txt |
+| Formatted export | docs/paper/P.R.O.T.E.C.T._GRADE12_FINAL_revised.docx and .pdf (94 pages) |
+| Side-by-side original vs revised | docs/paper/PAPER_REVIEW.html |
+| The review itself | docs/paper/ERRORS_MASTER.md + docs/paper/review/00..06 |
+| What changed and what is still theirs to decide | docs/paper/CHANGES.md |
+| Paired-reading template | data/accuracy_n30_template.csv + data/README.md |
+
+### The manuscript now has
+- an Abstract, an Ethical Considerations section with a Data Protection
+  subsection, nine numbered Limitations, Recommendations, Acknowledgements and a
+  short "What We Learned" - all of which the Innovation Expo format asks for and
+  none of which the paper had;
+- the DS18B20 replaced by the MCP9808 everywhere, with the firmware behind it
+  (read over I2C at 0x18, no new library, both sketches at 71 % flash);
+- the Maxim heart-rate / SpO2 computation restored in the deployed sketch, the
+  simulated blocks moved behind USE_SIMULATED_VITALS (default 0), and a new
+  status word "DEMO DATA - not a measurement" so that a device with no reading
+  can never say the patient is well;
+- all figure and table numbers made sequential, and the three Results tables
+  that had no number at all now carry captions, numbers and callouts;
+- the adviser working-note markers [a]-[e] removed and the [a] inside the
+  Figure 6 caption cleaned out.
+
+### The export pipeline (re-runnable)
+    bash docs/paper/build_paper.sh        # DOCX + PDF with a converged static TOC
+    python3 docs/paper/apply_revision.py  # regenerate PAPER_REVISED.txt from the Google Doc export
+Both are assertion-checked: the manuscript script aborts if a line it expects to
+edit has changed, so an edit never lands silently in the wrong place. The TOC is
+static with real page numbers, converged over two passes, because a Word TOC
+field does not survive Google Docs import.
+
+### The Innovation Expo format (left column only, per instruction)
+Required: Title Page + TOC · Introduction (Features and Specifications, Market
+Trends and Opportunities) · Materials and Methods · Results and Discussion ·
+Conclusions · Acknowledgements · References in APA.
+Still to do: write Features and Specifications; write Market Trends and
+Opportunities and move the comparative Table 1 into it; rename Methodology to
+Materials and Methods and add "how to use the invention"; rename Conclusion to
+Conclusions and add applications, customer benefits and impact; fold the Review
+of Related Literature under the Introduction so the top-level order matches;
+reformat the references to APA 7th and add the missing entries (Garcia, WHO
+GSAP, UN, ISO 80601-2-61, ASTM E1965, the commercial comparators). The
+invention summary panel was left out of scope on purpose.
+
+### Numbering bugs still live in the user's Google Doc
+- "Figure 7.2" is used twice - the access-control diagram must be 7.3;
+- the Results multi-sensor figure is labelled "Figure 7" and collides with the
+  7.1-7.3 group - it must be renumbered;
+- "Figure 2 illustrates the schematic diagram..." still says 2, the caption says
+  5;
+- "4.1 Reliability and Accuracy Evaluation" sits after 4.2 - it is 4.3;
+- the latency table in 4.2 has no number (Tables 6, 7, 8 in the revised text);
+- the appendix still repeats Figure 3 and Figure 5, which collide with the body.
+
+### The open question that decides how the paper is presented
+Three sets of numbers are not traceable to any record: the accuracy figures in
+Table 7, the latency figures in Table 6, and the stakeholder means. There is no
+data directory, no paired-reading file, and the cost sheet is an empty template.
+Until the paired test is run, the honest options are to measure, or to state in
+the results that the values are demonstration data - exactly as the firmware now
+labels them.
+
+### Next steps, in order
+1. Fit the MCP9808 and a working MAX30102, re-pin the firmware (button GPIO4,
+   buzzer GPIO27), flash, and confirm the button sends an SMS.
+2. Run the paired protocol (docs/CALIBRATION_TEST_PROTOCOL.md) with at least 30
+   paired readings, save data/accuracy_n30.csv, and run the agreement generator.
+3. Rebuild the paper export, then apply the text to the Google Doc.
+4. Close the RTDB with a service account, rotate the caregiver numbers and the
+   WiFi password, and commit the fleet phase.
+
+### Recovery note
+If the chat resets: open this file (§70-§77), then docs/paper/CHANGES.md,
+then docs/paper/PAPER_REVISED.txt. The build scripts, the figure generators and
+the paper source are all inside /home/ryan/PROTECT_MVP.
