@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="600" viewBox="0 0 1000 600" font-family="Helvetica, Arial, sans-serif">
+<rect width="1000" height="600" fill="#FFFFFF"/>
+<text x="40" y="46" font-size="21" font-weight="bold" fill="#0F172A">Telemetry response time by notification pathway</text>
+<text x="40" y="70" font-size="12.5" fill="#64748B">Values as reported in Table 6. The pass criterion is applied to the average latency.</text>
+<line x1="268.0" y1="98" x2="268.0" y2="472" stroke="#E2E8F0" stroke-width="1"/>
+<text x="268.0" y="492" font-size="12" fill="#64748B" text-anchor="middle">0</text>
+<line x1="367.7" y1="98" x2="367.7" y2="472" stroke="#E2E8F0" stroke-width="1"/>
+<text x="367.7" y="492" font-size="12" fill="#64748B" text-anchor="middle">1</text>
+<line x1="467.4" y1="98" x2="467.4" y2="472" stroke="#E2E8F0" stroke-width="1"/>
+<text x="467.4" y="492" font-size="12" fill="#64748B" text-anchor="middle">2</text>
+<line x1="567.1" y1="98" x2="567.1" y2="472" stroke="#E2E8F0" stroke-width="1"/>
+<text x="567.1" y="492" font-size="12" fill="#64748B" text-anchor="middle">3</text>
+<line x1="666.8" y1="98" x2="666.8" y2="472" stroke="#E2E8F0" stroke-width="1"/>
+<text x="666.8" y="492" font-size="12" fill="#64748B" text-anchor="middle">4</text>
+<line x1="766.4" y1="98" x2="766.4" y2="472" stroke="#E2E8F0" stroke-width="1"/>
+<text x="766.4" y="492" font-size="12" fill="#64748B" text-anchor="middle">5</text>
+<line x1="866.1" y1="98" x2="866.1" y2="472" stroke="#E2E8F0" stroke-width="1"/>
+<text x="866.1" y="492" font-size="12" fill="#64748B" text-anchor="middle">6</text>
+<text x="587" y="514" font-size="12.5" fill="#64748B" text-anchor="middle">Latency (seconds)</text>
+<line x1="866.1" y1="92" x2="866.1" y2="472" stroke="#DC2626" stroke-width="1.6" stroke-dasharray="6 4"/>
+<text x="858.1" y="86" font-size="12" font-weight="bold" fill="#DC2626" text-anchor="end">6.00 s end-to-end budget</text>
+<rect x="268" y="103.0" width="84.7" height="30" rx="4" fill="#0F766E" opacity="0.88"/>
+<line x1="329.8" y1="118" x2="377.7" y2="118" stroke="#0F172A" stroke-width="2"/>
+<line x1="329.8" y1="111" x2="329.8" y2="125" stroke="#0F172A" stroke-width="2"/>
+<line x1="377.7" y1="111" x2="377.7" y2="125" stroke="#0F172A" stroke-width="2"/>
+<polygon points="367.7,84.0 373.7,90.0 367.7,96.0 361.7,90.0" fill="#FFFFFF" stroke="#0F172A" stroke-width="1.6"/>
+<text x="250" y="110" font-size="13.5" font-weight="normal" fill="#0F172A" text-anchor="end">Local Sensor</text>
+<text x="250" y="128" font-size="13.5" font-weight="normal" fill="#0F172A" text-anchor="end">Processing Delay</text>
+<text x="250" y="148" font-size="11.5" fill="#0F172A" text-anchor="end">average 0.85 s</text>
+<text x="250" y="164" font-size="11" fill="#64748B" text-anchor="end">criterion &#8804; 1.00 s &#183; observed 0.62&#8211;1.10 s</text>
+<rect x="268" y="199.0" width="114.6" height="30" rx="4" fill="#0F766E" opacity="0.88"/>
+<line x1="347.8" y1="214" x2="417.5" y2="214" stroke="#0F172A" stroke-width="2"/>
+<line x1="347.8" y1="207" x2="347.8" y2="221" stroke="#0F172A" stroke-width="2"/>
+<line x1="417.5" y1="207" x2="417.5" y2="221" stroke="#0F172A" stroke-width="2"/>
+<polygon points="467.4,180.0 473.4,186.0 467.4,192.0 461.4,186.0" fill="#FFFFFF" stroke="#0F172A" stroke-width="1.6"/>
+<text x="250" y="206" font-size="13.5" font-weight="normal" fill="#0F172A" text-anchor="end">Local Fall</text>
+<text x="250" y="224" font-size="13.5" font-weight="normal" fill="#0F172A" text-anchor="end">Alert Trigger</text>
+<text x="250" y="244" font-size="11.5" fill="#0F172A" text-anchor="end">average 1.15 s</text>
+<text x="250" y="260" font-size="11" fill="#64748B" text-anchor="end">criterion &#8804; 2.00 s &#183; observed 0.80&#8211;1.50 s</text>
+<rect x="268" y="295.0" width="241.2" height="30" rx="4" fill="#0F766E" opacity="0.88"/>
+<line x1="387.6" y1="310" x2="746.5" y2="310" stroke="#0F172A" stroke-width="2"/>
+<line x1="387.6" y1="303" x2="387.6" y2="317" stroke="#0F172A" stroke-width="2"/>
+<line x1="746.5" y1="303" x2="746.5" y2="317" stroke="#0F172A" stroke-width="2"/>
+<polygon points="766.4,276.0 772.4,282.0 766.4,288.0 760.4,282.0" fill="#FFFFFF" stroke="#0F172A" stroke-width="1.6"/>
+<text x="250" y="302" font-size="13.5" font-weight="normal" fill="#0F172A" text-anchor="end">Cloud Data</text>
+<text x="250" y="320" font-size="13.5" font-weight="normal" fill="#0F172A" text-anchor="end">Transmission</text>
+<text x="250" y="340" font-size="11.5" fill="#0F172A" text-anchor="end">average 2.42 s</text>
+<text x="250" y="356" font-size="11" fill="#64748B" text-anchor="end">criterion &#8804; 5.00 s &#183; observed 1.20&#8211;4.80 s</text>
+<rect x="268" y="391.0" width="340.9" height="30" rx="4" fill="#0369A1" opacity="0.88"/>
+<line x1="469.4" y1="406" x2="856.2" y2="406" stroke="#0F172A" stroke-width="2"/>
+<line x1="469.4" y1="399" x2="469.4" y2="413" stroke="#0F172A" stroke-width="2"/>
+<line x1="856.2" y1="399" x2="856.2" y2="413" stroke="#0F172A" stroke-width="2"/>
+<polygon points="866.1,372.0 872.1,378.0 866.1,384.0 860.1,378.0" fill="#FFFFFF" stroke="#0F172A" stroke-width="1.6"/>
+<text x="250" y="398" font-size="13.5" font-weight="bold" fill="#0F172A" text-anchor="end">Total Telemetry</text>
+<text x="250" y="416" font-size="13.5" font-weight="bold" fill="#0F172A" text-anchor="end">Notification Latency</text>
+<text x="250" y="436" font-size="11.5" fill="#0F172A" text-anchor="end">average 3.42 s</text>
+<text x="250" y="452" font-size="11" fill="#64748B" text-anchor="end">criterion &#8804; 6.00 s &#183; observed 2.02&#8211;5.90 s</text>
+<rect x="40" y="532" width="18" height="12" rx="2" fill="#0F766E" opacity="0.88"/>
+<text x="66" y="543" font-size="12" fill="#64748B">average latency</text>
+<line x1="200" y1="538" x2="248" y2="538" stroke="#0F172A" stroke-width="2"/>
+<line x1="200" y1="533" x2="200" y2="543" stroke="#0F172A" stroke-width="2"/>
+<line x1="248" y1="533" x2="248" y2="543" stroke="#0F172A" stroke-width="2"/>
+<text x="258" y="543" font-size="12" fill="#64748B">observed minimum to maximum</text>
+<polygon points="520,532 526,538 520,544 514,538" fill="#FFFFFF" stroke="#0F172A" stroke-width="1.6"/>
+<text x="534" y="543" font-size="12" fill="#64748B">pass criterion</text>
+<line x1="680" y1="532" x2="680" y2="544" stroke="#DC2626" stroke-width="1.6" stroke-dasharray="6 4"/>
+<text x="690" y="543" font-size="12" fill="#64748B">end-to-end budget</text>
+<text x="40" y="580" font-size="11.5" fill="#64748B">The end-to-end figure was measured directly and is therefore shorter than the sum of the three stages, because the cloud transmission overlaps with the local alert.</text>
+</svg>
