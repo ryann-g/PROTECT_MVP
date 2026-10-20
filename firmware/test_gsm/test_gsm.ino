@@ -13,11 +13,12 @@
 // phone so you can prove each caregiver receives it. Empty "" = slot skipped.
 // Numbers live only in this file on your PC. If ALL slots are empty, setup()
 // asks you to type one number in Serial Monitor instead.
-static const char *TEST_NUMBERS[] = {
-  "+639935330191",
-  "+639055679117",
-  "",
-};
+// TEST_NUMBERS comes from secrets.h (local only, gitignored).
+#if __has_include("secrets.h")
+  #include "secrets.h"
+#else
+  #include "secrets_template.h"
+#endif
 static const uint8_t TEST_COUNT = 3;
 static bool hasGsm = false;
 static String at(const char *cmd, unsigned long timeout = 3000) {

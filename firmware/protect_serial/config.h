@@ -1,6 +1,8 @@
 // config.h — P.R.O.T.E.C.T. Final all-5 + TFT: single place to tune pins + thresholds.
-// Frozen solder map (2026-10-12): I2C 21/22 (MAX 0x57, RTC 0x68, MPU 0x69 AD0->3V3),
-// DS18B20 DATA 14, SPI 23/19/18, TFT CS15/DC2/RST4, SD CS5, LEDs 25/26/27, buzzer 13,
+// Frozen solder map (2026-10-14): I2C 21/22 (MAX 0x57, RTC 0x68, MPU 0x69 AD0->3V3),
+// DS18B20 DATA 4 (proven isolation pin, 4.7k pull-up to 3V3), SPI 23/19/18,
+// TFT CS15/DC2/RST33 (RST moved off 4: DS18B20 owns 4), SD CS5,
+// LEDs 25/26/27, buzzer 13,
 // button 34 (input-only), GSM 16/17 + own 5V 2A + 1000uF, TFT 5V ext, buck 5V->VIN.
 // Edit ONLY this file to adapt to your exact ESP32 / TFT boards.
 
@@ -25,7 +27,7 @@
 // ---- Sensors: MAX30102 + DS18B20 + DS3231-mini (+ MPU6050 + SIM800L when enabled) ----
 static const uint8_t PIN_I2C_SDA = 21;
 static const uint8_t PIN_I2C_SCL = 22;
-static const int PIN_DS18B20 = 14;  // OneWire DATA (was DHT11 pin — no rewiring), 4.7k pull-up to 3V3
+static const int PIN_DS18B20 = 4;  // OneWire DATA (isolation-proven pin), 4.7k pull-up to 3V3
 // Expected I2C addresses: MAX30102 0x57, DS3231-mini 0x68, MPU6050 0x69 (AD0->3V3)
 
 // ---- SPI (TFT + SD share MOSI/MISO/SCK) ----
@@ -34,13 +36,15 @@ static const int PIN_SPI_MISO = 19;
 static const int PIN_SPI_SCK  = 18;
 static const int PIN_TFT_CS   = 15;
 static const int PIN_TFT_DC   = 2;
-static const int PIN_TFT_RST  = 4;
+static const int PIN_TFT_RST  = 33;  // moved off 4 (DS18B20 owns GPIO4 now)
+// XPT2046 3.5" module: touch parked (no lib). Wire T_CS->3V3 so touch never
+// drives MISO; T_CLK/T_DIN/T_DO/T_IRQ unconnected. See docs/TFT_SETUP.md.
 static const int PIN_SD_CS    = 5;
 
-// ---- Alerts + input ----
-static const int PIN_LED_GREEN  = 25;
-static const int PIN_LED_YELLOW = 26;
-static const int PIN_LED_RED    = 27;
+// ---- Alerts + input (single-LED build: only YELLOW wired) ----
+static const int PIN_LED_GREEN  = 25;  // UNWIRED (normal shows on TFT green bar)
+static const int PIN_LED_YELLOW = 26;  // warning lamp: long leg->26, short leg->220ohm->GND
+static const int PIN_LED_RED    = 27;  // UNWIRED (critical shows on TFT red bar + buzzer)
 static const int PIN_BUZZER     = 13;
 static const int PIN_BUTTON     = 34;  // input-only, NO internal pull-up on GPIO34-39!
 #define USE_SOS_BUTTON 0  // 1 = button wired (34 + 10k to 3V3 + btn to GND), 0 = no button yet
@@ -73,11 +77,12 @@ static const long GSM_BAUD = 115200;
 // Recipients, in order: slot 1 = your number (installed), slots 2-3 empty —
 // paste more +63 numbers (own PC only, never chats). Empty = slot skipped.
 // Each SMS costs load + ~3-5s airtime; keep the list short (max 3).
-static const char *CAREGIVER_NUMBERS[] = {
-  "+639935330191",
-  "+639055679117",
-  "",
-};
+// CAREGIVER_NUMBERS comes from secrets.h (local only, gitignored).
+#if __has_include("secrets.h")
+  #include "secrets.h"
+#else
+  #include "secrets_template.h"
+#endif
 static const uint8_t CAREGIVER_COUNT = 3;
 static const unsigned long GSM_SMS_COOLDOWN_MS = 60000;  // max 1 broadcast/min
 

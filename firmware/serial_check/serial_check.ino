@@ -4,7 +4,7 @@
 // Board: ESP32 Dev Module. Serial Monitor @115200 after upload.
 //
 // Wiring (frozen map): MAX VIN->3V3 GND->GND SDA->21 SCL->22.
-//   DS18B20 RED->3V3 BLACK->GND YELLOW->14 (+4.7k DATA->3V3).
+//   DS18B20 RED->3V3 BLACK->GND YELLOW->4 (+4.7k DATA->3V3).
 //   DS3231-mini VCC->3V3 GND->GND SDA->21 SCL->22.
 //   MPU6050 (if on) AD0->3V3, same SDA/SCL. GSM (if on) RX<-TXD TX->RXD + own 5V 2A.
 //
@@ -17,7 +17,7 @@
 //
 // Decode:
 //   IR>50000 = finger present. IR<20000 = no finger. IR=0 = MAX missing.
-//   Temp -127 = probe disconnected (DATA14/VCC/GND/pull-up). 85 = reset, retry.
+//   Temp -127 = probe disconnected (DATA4/VCC/GND/pull-up). 85 = reset, retry.
 //   RTC:MISSING = SDA21/SCL22/3V3 or dead battery (clock shows seconds).
 //   MPU:-- = AD0 not to 3V3 or SDA/SCL swap. GSM:silent = normal without SIM/5V2A.
 
@@ -36,7 +36,7 @@
 #include <Adafruit_Sensor.h>
 #endif
 
-#define DS_PIN 14
+#define DS_PIN 4
 static OneWire oneWire(DS_PIN);
 static DallasTemperature dsTemp(&oneWire);
 static MAX30105 pox;
@@ -74,7 +74,7 @@ void setup() {
   // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
   dsTemp.begin();
   dsTemp.setResolution(11);
-  Serial.printf("DS18B20 probes:%d (0 = check VCC/GND/DATA14/4.7k pull-up)\n", (int)dsTemp.getDeviceCount());
+  Serial.printf("DS18B20 probes:%d (0 = check VCC/GND/DATA4/4.7k pull-up)\n", (int)dsTemp.getDeviceCount());
   hasPox = pox.begin(Wire, I2C_SPEED_STANDARD);
   if (hasPox) pox.setup(0x1F, 4, 2, 100, 411, 4096);
   Serial.printf("MAX30102:%s\n", hasPox ? "OK (place finger steady)" : "MISSING (check VIN3V3/GND/SDA21/SCL22)");

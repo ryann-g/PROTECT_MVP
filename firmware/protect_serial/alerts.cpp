@@ -1,4 +1,4 @@
-// alerts.cpp —7654321 Green=normal, Yellow=warning, Red+buzzer=critical/SOS latched.
+// alerts.cpp — single warning LED (Yellow) + buzzer for critical/SOS latched.
 #include "alerts.h"
 
 static volatile bool sosFlag = false;
@@ -10,9 +10,9 @@ static void IRAM_ATTR onSos() {
 }
 
 void alertsBegin() {
-  pinMode(PIN_LED_GREEN, OUTPUT);
+  // Single-LED build: only YELLOW (warning) wired. GREEN/RED unwired —
+  // normal shows on TFT (green bar), critical shows on TFT (red bar) + buzzer.
   pinMode(PIN_LED_YELLOW, OUTPUT);
-  pinMode(PIN_LED_RED, OUTPUT);
   pinMode(PIN_BUZZER, OUTPUT);
 #if USE_SOS_BUTTON
   // GPIO34-39 are input-only: NO internal pull-up exists. Button MUST be
@@ -48,9 +48,7 @@ StatusLevel alertsEvaluate(const Vitals &v, bool sosLatched) {
 }
 
 void alertsOutput(StatusLevel st, bool sosLatched) {
-  digitalWrite(PIN_LED_GREEN, st == ST_NORMAL);
-  digitalWrite(PIN_LED_YELLOW, st == ST_WARNING);
-  digitalWrite(PIN_LED_RED, st == ST_CRITICAL);
+  digitalWrite(PIN_LED_YELLOW, st == ST_WARNING);  // warning-only lamp
   // Active buzzer: steady ON when critical/SOS. Swap for tone() if passive.
   digitalWrite(PIN_BUZZER, (st == ST_CRITICAL || sosLatched) ? HIGH : LOW);
 }

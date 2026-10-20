@@ -12,7 +12,7 @@ bool loggerBegin() {
   Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL);
   hasRtc = rtc.begin();
   // If RTC lost power, set once then re-flash with this line commented:
-  // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+  rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));  // TEMP CLOCK-SET: re-comment after one boot!
 #if USE_SDCARD
   SPI.begin(PIN_SPI_SCK, PIN_SPI_MISO, PIN_SPI_MOSI, PIN_SD_CS);
   hasSd = SD.begin(PIN_SD_CS);

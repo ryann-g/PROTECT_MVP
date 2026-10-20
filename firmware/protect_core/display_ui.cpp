@@ -32,8 +32,9 @@ void displayShowFull(const Vitals &v, StatusLevel st, const char *clockStr,
   tft.print(clockStr);
 
 #if WORDS_ONLY
-  // Words-only screen: one huge human word, no vital digits.
+  // Words-only screen: one huge human word + one action line, no vital digits.
   // (Digits still measured + logged to SD every sample.)
+  // Unified words: FEELING WELL / CHECK NEEDED / ALERT / MEASURING... / SOS-HELP!
   tft.setTextSize(5);
   tft.setCursor(20, 80);
   if (sos) tft.println("SOS-HELP!");
@@ -43,11 +44,11 @@ void displayShowFull(const Vitals &v, StatusLevel st, const char *clockStr,
   else tft.println("WAIT...");
   tft.setTextSize(2);
   tft.setCursor(20, 150);
-  if (sos) tft.println("SOS - HELP!");
-  else if (st == ST_CRITICAL) tft.println("ALERT - check person");
-  else if (st == ST_WARNING) tft.println("CHECK NEEDED");
-  else if (v.hrValid || v.tempValid) tft.println("FEELING WELL");
-  else tft.println("MEASURING...place finger");
+  if (sos) tft.println("HELP! Caregiver called!");
+  else if (st == ST_CRITICAL) tft.println("Sit down, call caregiver!");
+  else if (st == ST_WARNING) tft.println("Please rest, recheck soon.");
+  else if (v.hrValid || v.tempValid) tft.println("You are OK. Rest.");
+  else tft.println("Keep finger still, wait.");
 #else
   tft.setTextSize(4);
   tft.setCursor(10, 42);
@@ -63,15 +64,16 @@ void displayShowFull(const Vitals &v, StatusLevel st, const char *clockStr,
   else tft.println("T:--.-C");
 #endif
 
-  // 5-sensor sys strip (small, researcher/caregiver): RTC/MPU/GSM + live values.
+  // 5-sensor sys strip (small, caregiver): plain labels, no jargon.
+  // Time = RTC clock, Fall = MPU6050, SMS = GSM module. Values stay for debug.
   tft.setTextSize(2);
   tft.setTextColor(TFT_CYAN, TFT_BLACK);
   tft.setCursor(10, 204);
-  tft.print(sys.rtcOk ? "RTC:OK" : "RTC:--");
+  tft.print(sys.rtcOk ? "Time:OK" : "Time:--");
   if (!isnan(sys.rtcTempC)) { tft.print(" "); tft.print(sys.rtcTempC, 1); tft.print("C"); }
-  tft.print(sys.mpuOk ? " MPU:OK" : " MPU:--");
+  tft.print(sys.mpuOk ? " Fall:OK" : " Fall:--");
   if (sys.mpuOk) { tft.print(" "); tft.print(sys.accelG, 2); tft.print("g"); }
-  tft.print(sys.gsmOk ? " GSM:OK" : " GSM:--");
+  tft.print(sys.gsmOk ? " SMS:OK" : " SMS:--");
 
   // Status bar at bottom: friendly words, same colors.
   // Honesty rule: no valid data never says WELL — it says MEASURING.
@@ -79,7 +81,7 @@ void displayShowFull(const Vitals &v, StatusLevel st, const char *clockStr,
   tft.setTextColor(TFT_BLACK, statusColor(st));
   tft.setTextSize(3);
   tft.setCursor(20, 250);
-  if (sos) tft.println("SOS - HELP!");
+  if (sos) tft.println("SOS-HELP!");
 #if TEST_CRITICAL
   else if (st == ST_CRITICAL) tft.println("DRILL");
 #else

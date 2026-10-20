@@ -1,5 +1,6 @@
 // gsm.cpp — needs no extra lib (raw AT over Serial2). Compiles to stubs when off.
 #include "gsm.h"
+#include "logger.h"
 
 #if USE_GSM
 static bool hasGsm = false;
@@ -13,6 +14,7 @@ static String atCmd(const char *cmd, unsigned long timeout = 2500) {
   while (millis() - t0 < timeout) {
     while (Serial2.available()) res += (char)Serial2.read();
     if (res.indexOf("OK") >= 0 || res.indexOf("ERROR") >= 0) break;
+    sensorsPump();  // keep MAX FIFO drained during AT waits (see below)
   }
   return res;
 }
@@ -40,6 +42,10 @@ bool gsmBegin() {
 bool gsmIsReady() { return hasGsm; }
 
 void gsmSendDistress(const Vitals &v, StatusLevel st, const char *why) {
+  // PUMP-AWARE: every wait below drains the MAX FIFO via sensorsPump().
+  // The Maxim window needs gapless samples; the old blocking delays froze the
+  // pump for ~30s per 2-slot broadcast (FIFO overflow -> HR invalid forever
+  // while alerting). SMS timing/behavior unchanged — only the idle side-effect.
   if (!hasGsm) return;
   // lastSms==0 (fresh boot) must NOT trigger cooldown — else the first
   // post-boot alert is silently eaten.
@@ -66,20 +72,67 @@ void gsmSendDistress(const Vitals &v, StatusLevel st, const char *why) {
       return;
     }
   }
-  // Invalid-aware text: absent sensors read 0 — never send 0.0 as a
-  // measurement. "--" instead, plus the legend word for the status.
+  // Plain-language text for lay caregivers (no "SpO2", no "--", no double
+  // label): time + what happened + numbers with high/low/fever + one action.
+  // All ASCII (GSM charset), always under 140 chars = 1 SMS segment.
+  // Invalid sensors say "no reading", never 0.0. Drill build says DRILL.
+  char clockFull[20] = {0};
+  loggerGetClock(clockFull);  // "YYYY-MM-DD HH:MM:SS"
+  char hhmm[6] = "--:--";
+  if (clockFull[10] == ' ' && clockFull[13] == ':') {
+    hhmm[0] = clockFull[11]; hhmm[1] = clockFull[12]; hhmm[2] = ':';
+    hhmm[3] = clockFull[14]; hhmm[4] = clockFull[15]; hhmm[5] = '\0';
+  }
+
+  // Short vitals: "HR88, Oxy99%, Temp36.6C" (FALL/SOS/DRILL style).
+  char vitalsShort[80];
+  {
+    char hrPart[32], tPart[24];
+    if (v.hrValid) snprintf(hrPart, sizeof(hrPart), "HR%.0f, Oxy%.0f%%", v.hr, v.spo2);
+    else snprintf(hrPart, sizeof(hrPart), "HR/Oxy no reading");
+    if (v.tempValid) snprintf(tPart, sizeof(tPart), "Temp%.1fC", v.tempC);
+    else snprintf(tPart, sizeof(tPart), "Temp no reading");
+    snprintf(vitalsShort, sizeof(vitalsShort), "%s, %s", hrPart, tPart);
+  }
+
+  // Long vitals for ALERT: adds high/low/fever so caregiver knows which is bad.
+  char vitalsLong[96];
+  {
+    char hrPart[32], oxPart[24], tPart[28];
+    if (v.hrValid) {
+      const char *q = (v.hr > HR_HIGH_CRIT || v.hr < HR_LOW_CRIT) ? " high" : "";
+      if (v.hr < HR_LOW_CRIT) q = " low";
+      snprintf(hrPart, sizeof(hrPart), "HR%.0f%s", v.hr, q);
+    } else snprintf(hrPart, sizeof(hrPart), "HR no reading");
+    if (v.hrValid) {
+      const char *q = (v.spo2 < SPO2_CRIT) ? " low" : "";
+      snprintf(oxPart, sizeof(oxPart), "Oxy%.0f%%%s", v.spo2, q);
+    } else snprintf(oxPart, sizeof(oxPart), "Oxy no reading");
+    if (v.tempValid) {
+      const char *q = "";
+      if (v.tempC > TEMP_HIGH_CRIT) q = " fever";
+      else if (v.tempC < TEMP_LOW_CRIT) q = " low";
+      snprintf(tPart, sizeof(tPart), "Temp%.1fC%s", v.tempC, q);
+    } else snprintf(tPart, sizeof(tPart), "Temp no reading");
+    snprintf(vitalsLong, sizeof(vitalsLong), "%s, %s, %s", hrPart, oxPart, tPart);
+  }
+
   char msg[160];
-  int n = snprintf(msg, sizeof(msg), "PROTECT %s HR:", why);
-  n += v.hrValid ? snprintf(msg + n, sizeof(msg) - n, "%.0f", v.hr)
-                 : snprintf(msg + n, sizeof(msg) - n, "--");
-  n += snprintf(msg + n, sizeof(msg) - n, " SpO2:");
-  n += v.hrValid ? snprintf(msg + n, sizeof(msg) - n, "%.0f", v.spo2)
-                 : snprintf(msg + n, sizeof(msg) - n, "--");
-  n += snprintf(msg + n, sizeof(msg) - n, " T:");
-  n += v.tempValid ? snprintf(msg + n, sizeof(msg) - n, "%.1fC", v.tempC)
-                   : snprintf(msg + n, sizeof(msg) - n, "--");
-  snprintf(msg + n, sizeof(msg) - n, " %s",
-           st == ST_CRITICAL ? "ALERT" : st == ST_WARNING ? "CHECK" : "OK");
+#if TEST_CRITICAL
+  // Drill build: never send a real-looking ALERT.
+  snprintf(msg, sizeof(msg), "PROTECT DRILL %s Drill only, no danger. %s. Ignore.",
+           hhmm, vitalsShort);
+#else
+  if (strcmp(why, "SOS") == 0) {
+    snprintf(msg, sizeof(msg), "PROTECT SOS %s Help button pressed! Please go check now.", hhmm);
+  } else if (strcmp(why, "FALL") == 0) {
+    snprintf(msg, sizeof(msg), "PROTECT FALL %s Fall detected! %s. Please go check now.",
+             hhmm, vitalsShort);
+  } else {
+    snprintf(msg, sizeof(msg), "PROTECT ALERT %s Check person now! %s. Please go check.",
+             hhmm, vitalsLong);
+  }
+#endif
   for (uint8_t i = 0; i < CAREGIVER_COUNT; i++) {
     const char *num = CAREGIVER_NUMBERS[i];
     if (!num || num[0] == '\0') continue;  // empty slot = skipped
@@ -91,6 +144,7 @@ void gsmSendDistress(const Vitals &v, StatusLevel st, const char *why) {
     bool prompt = false;
     while (millis() - t0 < 5000) {
       if (Serial2.available() && Serial2.read() == '>') { prompt = true; break; }
+      sensorsPump();
     }
     if (!prompt) { Serial.println(F("[GSM] no > prompt, next slot.")); continue; }
     Serial2.print(msg);
@@ -100,9 +154,11 @@ void gsmSendDistress(const Vitals &v, StatusLevel st, const char *why) {
     while (millis() - t1 < 12000) {
       while (Serial2.available()) res += (char)Serial2.read();
       if (res.indexOf("+CMGS:") >= 0 || res.indexOf("ERROR") >= 0) break;
+      sensorsPump();
     }
     Serial.printf("[GSM] slot %d result:%s\n", i + 1, res.c_str());
-    delay(3000);  // airtime per SMS before next recipient
+    { unsigned long air = millis();  // airtime per SMS (pump-aware, was delay)
+      while (millis() - air < 3000) { sensorsPump(); delay(5); } }
   }
   lastSms = millis();
 }

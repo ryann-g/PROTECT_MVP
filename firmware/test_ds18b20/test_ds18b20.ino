@@ -1,21 +1,21 @@
 // test_ds18b20.ino — DS18B20 waterproof probe ONLY.
-// Wire: RED VCC->3V3, BLACK GND->GND, YELLOW DATA->GPIO14 + 4.7k pull-up DATA->3V3.
+// Wire: RED VCC->3V3, BLACK GND->GND, YELLOW DATA->GPIO4 + 4.7k pull-up DATA->3V3.
 // Terminal adapter: probe leads into terminal block, adapter pins to ESP32.
 // Serial 115200. PASS: Temp updates every 2s, ~36-37C body (hold probe in hand).
-// FAIL codes: -127 = disconnected (check DATA14/VCC/GND/pull-up), 85 = power-on reset (re-read).
+// FAIL codes: -127 = disconnected (check DATA4/VCC/GND/pull-up), 85 = power-on reset (re-read).
 #include <Arduino.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
-#define DS_PIN 14
+#define DS_PIN 4
 static OneWire oneWire(DS_PIN);
 static DallasTemperature ds(&oneWire);
 void setup() {
   Serial.begin(115200); delay(800);
-  Serial.println(F("TEST DS18B20 boot (DATA=14, 4.7k to 3V3)"));
+  Serial.println(F("TEST DS18B20 boot (DATA=4, 4.7k to 3V3)"));
   ds.begin();
   ds.setResolution(11);
   Serial.printf("devices:%d\n", (int)ds.getDeviceCount());
-  if (ds.getDeviceCount() == 0) Serial.println(F("ERR: no probe (check VCC/GND/DATA14/pull-up)"));
+  if (ds.getDeviceCount() == 0) Serial.println(F("ERR: no probe (check VCC/GND/DATA4/pull-up)"));
 }
 void loop() {
   static unsigned long t = 0;

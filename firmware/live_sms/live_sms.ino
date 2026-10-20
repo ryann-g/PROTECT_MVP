@@ -20,16 +20,17 @@ static const unsigned long SAMPLE_MS = 2000;       // 2s sensor tick
 static const unsigned long LIVE_SMS_EVERY_MS = 30000;  // TRIAL ONLY: text every 30s (costs load!)
 
 // ---- Pins (frozen map) ----
-static const int PIN_DS18B20 = 14;  // OneWire DATA + 4.7k to 3V3
+static const int PIN_DS18B20 = 4;  // OneWire DATA + 4.7k to 3V3 (isolation-proven pin)
 static const int PIN_GSM_RX = 16;   // ESP32 RX <- module TXD
 static const int PIN_GSM_TX = 17;   // ESP32 TX -> module RXD
 
 // ---- Recipients (same slots as main builds; "" = skipped) ----
-static const char *LIVE_NUMBERS[] = {
-  "+639935330191",
-  "+639055679117",
-  "",
-};
+// LIVE_NUMBERS comes from secrets.h (local only, gitignored).
+#if __has_include("secrets.h")
+  #include "secrets.h"
+#else
+  #include "secrets_template.h"
+#endif
 static const uint8_t LIVE_COUNT = 3;
 
 // ---- MAX pipeline (proven pattern: pump every loop, 100-sample window) ----

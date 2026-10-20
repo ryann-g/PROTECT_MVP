@@ -17,11 +17,12 @@ static const int PIN_GSM_RX = 16;  // ESP32 RX <- module TXD
 static const int PIN_GSM_TX = 17;  // ESP32 TX -> module RXD
 
 // ---- Drill recipients (same slots as main builds; "" = skipped) ----
-static const char *DRILL_NUMBERS[] = {
-  "+639935330191",
-  "+639055679117",
-  "",
-};
+// DRILL_NUMBERS comes from secrets.h (local only, gitignored).
+#if __has_include("secrets.h")
+  #include "secrets.h"
+#else
+  #include "secrets_template.h"
+#endif
 static const uint8_t DRILL_COUNT = 3;
 static const unsigned long SMS_COOLDOWN_MS = 60000;
 
