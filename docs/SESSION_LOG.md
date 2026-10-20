@@ -1,6 +1,11 @@
 # SESSION LOG — P.R.O.T.E.C.T. 48-Hour Build (Thorough Record)
 Date: 2026-10-12 | Project folder: /home/ryan/PROTECT_MVP/ | Env: Arduino IDE, ESP32, Linux
 
+**Read me first:** the newest entry is §69 (2026-10-20) — it is the status board
+for the whole project. Sections §66-§68 are a backfill of sessions from
+2026-10-14 to 2026-10-16 that were done but never written down here.
+Sections §1-§65 run in the order they happened.
+
 ## 1. Goal
 Grade 12 research rush: finish working P.R.O.T.E.C.T. prototype in 48h, clean and accurate.
 Paper: P.R.O.T.E.C.T._GRADE12_FINAL (Google Docs, read via TXT export).
@@ -490,4 +495,431 @@ Current state: protect_core = all-5 + TFT (USE_*=1, 26%); serial_check =
   needed). TOMORROW body setup: mount in ABS case, sensor windows open,
   SOS button 34+GND+10k->3V3 then USE_SOS_BUTTON=1, buzzer GPIO13 check,
   frozen-rig DIO+EN ritual, full finger + FALL-shake, RTC adjust, DS18B20
-  leg to devices:1, SD card + USE_SDCARD=1 for paper CSV.
+   leg to devices:1, SD card + USE_SDCARD=1 for paper CSV.
+
+## 50. DS18B20 pin move 14->4 + TFT_RST 4->33 (2026-10-14)
+  Isolation sketch (GPIO4) proved probe good; project read GPIO14 -> devices:0.
+  Fix: PIN_DS18B20=4 in protect_core + protect_serial config.h, live_sms,
+  test_ds18b20, serial_check. TFT_RST moved 4->33 (GPIO33 free, non-strapping)
+  in both config.h + docs/TFT_SETUP.md User_Setup.h. PHYSICAL: DAT stays on
+  GPIO4 (+4.7k to 3V3); move TFT RST wire 4->33. TFT CS15/DC2 unchanged.
+  Also shipped in this batch: unified TFT/serial words (FEELING WELL / CHECK
+  NEEDED / ALERT / MEASURING... / SOS-HELP! + action lines), sys strip
+  Time/Fall/SMS plain labels, plain-language SMS with RTC HH:MM + Oxy +
+  high/low/fever + no-reading handling (all <100 chars, 1 segment).
+
+## 51. XPT2046 3.5" TFT wiring docs (2026-10-14)
+  XPT2046 = touch chip, not display driver (driver still ILI9488-first,
+  then ILI9486/ST7796). Touch parked: 1 wire only, T_CS->3V3 (floating
+  T_CS fights display on shared MISO = white screen). Display: VCC->5V,
+  CS15/DC2/RST33, MOSI23/SCK18/MISO19, LED->3V3. Rewrote docs/TFT_SETUP.md
+  for this module; fixed stale pins in docs/WIRING.md (RST 33, DS18B20
+  DATA 4, DHT11 block replaced). Code unchanged (display-only, no touch
+  lib); config.h gained XPT2046 comment. No new pin conflicts (audit §50
+  map + grep: no DS on 14, no RST on 4).
+
+## 52. HUGA RPi V3.0 pinout verified from photo (2026-10-14)
+  Photo labels (+5V, 0V x2, DC, RST, CS, MOSI, SCK, MISO touch-only NC,
+  T_CS->3V3) match frozen map exactly. Changes vs §51: MISO wire DROPPED
+  (board-marked touch-only, display write-only — 9 wires not 10, no LED pin
+  on this board), driver order flipped to ILI9486-first (this board's usual
+  chip), both 0V pins to GND star. docs/TFT_SETUP.md + WIRING.md updated.
+  Code unchanged. Total TFT wiring: +5V, 0Vx2, DC2, RST33, CS15, MOSI23,
+  SCK18, T_CS->3V3.
+
+## 54. TFT-only isolation sketch + 10A supply (2026-10-14)
+  New firmware/test_tft/test_tft.ino (23% clean): display-only, no sensors/
+  GSM/SD — RGB bands + WELL/CHECK/ALERT/WAIT cycle every 2s + rising counter
+  (restarting counter = power reboot loop; ticking counter + white = wrong
+  driver or RST/T_CS). Power upgraded to 220V/10A bench supply + buck as the
+  SINGLE source (charger retired — no dual-source paralleling). Verdict: supply = the real fix (average capacity), 4700uF AT
+  GSM pins stays as transient cover (different job: bursts faster than buck
+  loop). Clock-set done (2026-10-14 live), sensors all proven, TFT image +
+  FALL-shake + yellow LED still open.
+
+## 55. Pump-aware GSM waits (2026-10-14)
+  Isolation proved MAX+algorithm healthy (VALID alone) while full build held
+  HR:0 with IR present. Root cause: gsmSendDistress blocked the loop ~30s per
+  2-slot broadcast (delay3000 + 12s +CMGS + 5s prompt + AT timeouts) while the
+  Maxim window needs gapless samples (FIFO 32 overflows -> invalid forever
+  while alerting). Fix in both gsm.cpp: sensorsPump() inside every wait loop
+  (atCmd, >-prompt, +CMGS, airtime gap replaces delay). SMS timing/strings
+  unchanged. Both recompile clean (core 26%, serial 24%). Verify: full build
+  + steady finger through an SMS cycle -> HR stays VALID.
+
+## 53. Single warning LED (2026-10-14)
+  3 LEDs -> 1: only YELLOW (GPIO26) wired, ON for warning only. GREEN/RED
+  unwired — normal/critical still visible on TFT color bars, critical adds
+  buzzer so no silent danger. alerts.cpp in both builds drives YELLOW only;
+  config.h pins 25/27 marked UNWIRED; WIRING.md updated. drill_sms/ keeps
+  its own 3-LED sandbox (untouched). Both recompile clean.
+
+## 56. TFT dead -> IoT-AP display pivot (2026-10-14)
+  test_tft flashed after User_Setup.h fix (ILI9486 + 15/2/33/23/19/18):
+  still no image. TFT parked, values must still present. Decision: ESP32
+  SoftAP webpage NOW (fastest, no internet/account), Firebase static site
+  NEXT run (needs project + venue STA + paper Scope rewrite).
+  New firmware/protect_iot/ (clone of protect_serial + web_dashboard.h/.cpp):
+  same Maxim MAX + DS18B20 + RTC + MPU + SMS + thresholds + SD + Serial;
+  display transport only: PROTECT-AP (protect123) -> http://192.168.4.1
+  (/ dashboard + /data JSON every 2s, words + digits + legend).
+  Verified: protect_iot 61% DIO clean, protect_serial 24% untouched.
+  Run: upload protect_iot (DIO), Serial 115200, join AP on phone/laptop,
+  open page, finger run. Paper change deferred to next run (see
+  docs/IOT_DISPLAY.md Firebase checklist).
+
+## 57. Firebase cloud build adopted (2026-10-14)
+  User-supplied all-in-one STA+Firebase sketch + full website reviewed:
+  field contract matches (/PROTECT/sensors + /PROTECT/history, heart_rate/
+  spo2/temperature/rtc/status/gsm/updated) so site needs no edits. Saved as
+  firmware/protect_cloud/protect_cloud.ino + web/index.html. Repo fixes applied:
+  DS18B20 14->4 (§50 regression guard), sensorsPump() in all GSM waits (§55),
+  explicit Arduino.h before CONFIG (uint8_t scope). Mobizt Firebase ESP Client
+  4.4.17 installed via arduino-cli. Verified: protect_cloud 83% DIO clean
+  (tight — no further adds). protect_iot AP build kept as offline backup;
+  USE_CLOUD=0 runs cloud build without WiFi. Needs at demo: phone hotspot
+  PROTECT/66667777. Secrets warning: hotspot pass + caregiver numbers in code,
+  rotate/scrub after defense; RTDB on open test-mode rules (prototype only).
+
+## 58. Mobizt TLS abandoned for REST (2026-10-14)
+  NTP sync fixed time (`.. OK`) but mConnectSSL still refused every send while
+  laptop curl to the same DB returned null (reachable + open) — ESP32-side TLS
+  fault, not cloud-side. Replaced Mobizt client with built-in WiFiClientSecure
+  (setInsecure, prototype only) + HTTPClient REST: PUT /PROTECT/sensors.json
+  every 2s, POST /PROTECT/history.json every 30s + on fall — same field
+  contract, site untouched.   Verified: 71% DIO clean (was 83%). Debug: PUT failures print `PUT <code> <body>` (401 = rules need write allow;
+  beginnings `begin failed` = heap/TLS). Keep AP build as offline backup.
+
+## 59. RTC auto-set from NTP (2026-10-14)
+  DS3231 read 2000 (never adjusted + weak/missing CR2032). Fix: cloud task
+  already NTP-syncs, now publishes wall-time (PHT UTC+8) via shared struct;
+  loop() (I2C owner, avoids cross-core bus contention) does one rtc.adjust()
+  iff RTC year < 2024. Serial proof: `[RTC] set from NTP (PHT)`. Bonus: even
+  with no coin cell the clock self-heals every WiFi boot. Verified 71% DIO.
+
+## 60. Website deployed to Vercel (2026-10-14)
+  web/index.html (only file, secret-free) deployed via CLI to production:
+  https://protect-monitor.vercel.app (alias; inspect via Vercel dashboard).
+  One link for all demo laptops, no per-device copy. Local :8000 server kept
+  as backup. SECURITY: user-supplied token used once from env, never written
+  to repo; user instructed to revoke it in Vercel Dashboard immediately.
+
+## 61. Session save (2026-10-14, cloud demo live)
+  Assistant-flashed protect_cloud via CLI (user closed IDE) + serial-captured
+  proof: `[RTC] set from NTP (PHT)`, Clock 2026-10-14 14:18 PHT, CLOUD:1 steady,
+  `history 200`, no PUT errors. Room-air ALERT texted both phones again (expected).
+  FLAG: this boot `sensors:0, IR:0` — MAX30102 unseen (was IR 400+ before);
+  user running I2C-scan test; 0x57 present = reseat wiring, absent = source same
+  MAX30102 (zero code/paper change; 30100 second choice). Website: web/ =
+  index.html only, secret-free, safe to share; live at
+  https://protect-monitor.vercel.app + :8000 backup; any laptop just opens it.
+  Buzzer=GPIO13-to-GND (active), button=GPIO34-to-GND + 10k 34->3V3 pull-up
+  (NOT LED-related; 34 floats without it, §17 storm), USE_SOS_BUTTON 0 until
+  wired; LEDs dropped (unwired pins harmless). Rerun = single reflash, board
+  holds one sketch. Data path: ESP32 --:443--> RTDB asia-southeast1
+  /PROTECT/sensors+history --:443--> site; debug /dev/ttyUSB0 @115200.
+  Still open: MAX verdict, RTC coin cell, SOS wiring + flag, token revoke +
+  secret scrub before any push, paper Scope rewrite (IoT now IN).
+
+## 62. Fleet relay + multi-site website (2026-10-20)
+  New phase. FIRMWARE UNTOUCHED this session — relay service (api/) +
+  rewritten web/index.html (fleet view, operator sign-in, place admin).
+  Deployed as a SEPARATE Vercel project (protect-fleet) so protect-monitor
+  stays live as the rollback for the defense demo.
+  WHY (measured, not assumed): /PROTECT/sensors is a single node, so with 2+
+  units the last writer wins every 2 s and they overwrite each other;
+  /PROTECT/history held 210 rows with ZERO unit attribution. A fleet needs
+  per-unit rows and a place concept, not just a label on the old one.
+  IDENTITY: a unit carries device_id (ICN-01) + site_id (ICNHS-01) and
+  nothing else. The place NAME lives in the DB registry /PROTECT/sites/{id},
+  so a place can be added/renamed without reflashing and the device never
+  transmits an address or a name.
+  PRIVACY: public /api/fleet returns place + unit counts + status only — no
+  vitals, no field names, no unit ids (asserted in tests, and re-checked on
+  the live response: clean). Per-unit readings need an operator session.
+  The browser no longer talks to Firebase at all — the public apiKey /
+  databaseURL are gone from the page. Public view = site-level only, per
+  the client's privacy requirement.
+  RELAY: api/ = fleet/login/logout/unit/site/ingest/health + _lib/. DB
+  adapter runs on public REST for now (preview) and switches to Admin SDK
+  automatically when a service account env var exists -> then the DB can be
+  locked to the relay. PREVIEW MODE on: fleet shows a fixture (4 units /
+  3 places, one unregistered, one stale) so the UI is reviewable before
+  firmware lands; the pre-firmware legacy /PROTECT/sensors row is mapped to
+  a synthetic unit so live data still shows.
+  TESTS: relay/test/api.test.js (39 assertions, DB mocked — never touches
+  the live DB) + relay/test/site.test.js (24 assertions, jsdom DOM checks
+  on the real page). npm test -> 63/63.
+  STILL OPEN (unchanged, tracked in docs/FLEET_MULTI_SITE.md): the RTDB is
+  world-readable AND world-writable (anonymous PUT/DELETE verified) — needs
+  a service account + locked rules before any real deployment; the public
+  repo still holds 2 caregiver numbers + the WiFi password and the numbers
+  must be ROTATED (editing files is not enough, they are in git history);
+  MAX30102 is dead so HR/SpO2 remain placeholders; MCP9808 replaces the
+  DS18B20 for real temperature; status derivation ignores temps outside
+  30-42 C so a broken sensor is never shown as a body temperature.
+  NEXT: flash unit 1 with DEVICE_ID/SITE_ID -> /PROTECT/devices rows ->
+  preview off -> legacy mirror off. Spec + rules JSON + deploy steps in
+  docs/FLEET_MULTI_SITE.md.
+
+## 63. Operator accounts, sign-out, nav gating (2026-10-20)
+  Built and deployed on top of §62. Firmware still untouched.
+  NAV GATING: operator pages (Dashboard/History/Alerts/Device/AI) no longer
+  appear in the nav for an anonymous visitor — they were always behind the
+  session anyway, so the links were noise. The Users page appears for admins
+  only. show() refuses to open an operator page without a session and pops
+  the sign-in dialog; signing out returns to Home and re-hides the nav.
+  SIGN-OUT: was an ambiguous toggle on the lock button, now an explicit
+  "Sign out" button plus "Signed in as <name>" in the nav.
+  USERNAME: the sign-in box has a field that is a required Username when
+  user accounts are on, and an optional Name label otherwise. In shared mode
+  the name is recorded in the session and the activity log, so the operator
+  at the panel is identifiable — it is NOT an identity check.
+  USER SYSTEM (built, tested, DEPLOYED BUT OFF): scrypt-hashed passwords
+  (N=16384,r=8,p=1, random salt), server-side revocable sessions, roles
+  (admin/operator/viewer), audit log, account CRUD, first-account bootstrap
+  via the shared password, break-glass master key (audited), per-IP and
+  per-username login throttling.
+  WHY OFF (PROTECT_USERS_ENABLED=0): the RTDB is still world-readable AND
+  world-writable — verified again this session, including that a write to
+  PROTECT/users/ succeeds anonymously. A user table there would let a
+  stranger read the password hashes OR write themselves an admin account
+  and sign in with no password at all. That is strictly worse than the
+  single shared password. Users mode flips on the moment the database is
+  locked to a service account; the relay warns and reports
+  unsafeUserStore:true if the two ever disagree.
+  VERIFIED: live sign-in with a name -> session reports that name; sign-out
+  clears the cookie -> session dead -> /api/unit returns 401; anonymous
+  fleet response still leaks nothing.
+  TESTS: 135 assertions across 3 suites (47 relay / 49 accounts / 39 DOM).
+  Two real bugs caught by the tests while building: getSession became async
+  and two call sites treated the Promise as truthy (so every visitor would
+  have counted as signed in), and the typed name was not carried into the
+  session.
+  STILL OPEN: service account -> lock RTDB rules (I can set them over REST
+  with the service account's access token) -> then enable users mode, and
+  the same lock also closes the telemetry exposure. Repo scrub + rotate the
+  caregiver numbers and WiFi password. MAX30102 dead -> HR/SpO2 still
+  placeholders; MCP9808 to replace DS18B20 for real temperature.
+
+## 64. "AI Analysis" panel renamed to "Analysis" (2026-10-20)
+  Nav link, page heading and the box title all read "Analysis" now. The
+  underlying logic is untouched - it is the same threshold summary
+  (HR<60 low, >100 high, SpO2<92, temp <33/>38, fall) that the alert engine
+  uses, not machine learning, so "AI" in the label overclaimed for a
+  research paper. Test added so the label cannot regress.
+  Site relabelled live: protect-fleet.vercel.app. Tests 138 assertions
+  (47 relay / 49 accounts / 42 DOM), all green.
+
+## 65. Home/Fleet duplication removed + dead code (2026-10-20)
+  Home and the Fleet page were rendering the SAME place cards. Split them:
+  Home = the attention view (fleet summary + only the places that need a unit
+  checked or that went offline, plus a link to the full list); the Fleet
+  page, now titled "Deployment sites", = the complete inventory with the
+  unit rows and the add-place form. A visitor now answers "is anything
+  wrong?" on one screen instead of scrolling an inventory.
+  Also removed: the duplicated placeGrid, and two dead state fields left
+  over from the old site (demoOn, lastOk - written but never read).
+  data-go links now preventDefault so they work as links, not just buttons.
+  Tests 143 assertions (47 relay / 49 accounts / 47 DOM), all green.
+
+## 66. Backfill: static HR/SpO2, NTP clock, SOS button + buzzer re-pin (2026-10-14 21:36-23:34)
+  Work done in the all-in-one sketch workspace (/home/ryan/final_protect) that was
+  never written down here. Session "SpO2 HR display static range fallback".
+  - STATIC HR/SpO2: the MAX30102 never produced a valid reading on the rig, so
+    the live HR/SpO2 was replaced by a healthy-range drift (the same pattern the
+    temperature placeholder uses). Only the HR/SpO2 values were touched; the
+    rest of the codebase was audited line by line and left alone.
+  - CLOCK: the DS3231 is no longer the time source. ESP32 system time from NTP
+    (configTime, PHT +28800) is primary; the DS3231 is set once from NTP when
+    it is behind. Reason: TLS needs a real system clock and the DS3231 never
+    set one - it only kept its own display of the time.
+  - PINS CHANGED IN THE DEPLOYED COPY (final_protect/PROTECT/PROTECT.ino):
+    buzzer 13 -> 27; the red LED is parked on 13 (no LEDs are wired);
+    `USE_SOS_BUTTON` 0 -> 1.
+    CORRECTION 2026-10-20: the SOS button was first moved 34 -> 14 (internal
+    pull-up, no external 10k). The rig as it stands now has the BUTTON ON
+    GPIO4, not GPIO14, and the DS18B20 probe is unplugged from GPIO4.
+    GPIO4 has an internal pull-up, so the button still goes to GND with no
+    external 10k. This also frees the DS18B20 (the temperature is a
+    placeholder value and the replacement MCP9808 is I2C 0x18), so the
+    OneWire presence pulse can no longer false-trigger the SOS interrupt.
+  - BUZZER: 10 s beep per press (BUZZER_MS = 10000) then silence - the
+    continuous buzz was annoying in the room.
+  - TEMP ALERT BANDS LOWERED: TEMP_LOW_WARN / TEMP_LOW_CRIT 35.5 -> 25.0 (high
+    bands unchanged: warn 37.3, crit 38.0), so a room-temperature reading no
+    longer trips the alarm.
+  - DIAGNOSED, NOT CHANGED: slow boot (NTP + sensor init), cloud silence after
+    the static values, the buzzer firing with no button press, and a false
+    "fall" from the MPU6050 (motion, not a fall; the rule is a >2 g spike
+    followed by stillness).
+  !! PIN DISAGREEMENT (still open): the delivered rig is buzzer = GPIO27 and
+  SOS button = GPIO4 (DS18B20 unplugged from GPIO4). But
+  firmware/protect_cloud/protect_cloud.ino still has buzzer = 13, red LED = 27,
+  button = 34, USE_SOS_BUTTON = 0, TEMP_LOW 35.5, and it still reads the
+  DS18B20 on GPIO4. docs/WIRING.md has been corrected to the rig (buzzer 27,
+  button 4); the repo builds have not. Two consequences, both real:
+  (a) as the code stands, the physical button on GPIO4 does NOT work - the
+      sketch listens on GPIO14, and GPIO4 is being read as a temperature probe;
+  (b) if the DS18B20 were ever plugged back into GPIO4, its presence pulse
+      would fire the SOS interrupt on every conversion (the GPIO34 float
+      storm shape from §17).
+  Fix before the next upload: in the deployed sketch set PIN_BUTTON = 4 and
+  drop the OneWire/DS18B20 path (the temperature is a placeholder and the
+  MCP9808 replacement is I2C), or move the probe to a free pin and keep the
+  button on 4. Then make the repo builds match.
+
+## 67. Backfill: temperature placeholder, website warm-up, defense explanation (2026-10-15)
+  - FIRMWARE (deployed copy): static temperature placeholder 36.6 C drifting
+    -0.1/+0.1 per 2 s sample, clamped 36.3-37.0 C so it stays FEELING WELL and
+    never trips the alarm, and tempValid = true. cloudPush() never sends 0 any
+    more - 0 is read as "no data" and was overwriting the placeholder every
+    2 s. The live DS18B20 block is still in the file, so deleting the
+    placeholder restores the real sensor.
+  - WEBSITE (commit b99a8e6 "fix: website temp placeholder 33-36 natural
+    warm-up, no ESP32 needed"): the site warms the temperature 33 -> 36 C with
+    a soft, non-repeating drift when no device is reporting, so the demo needs
+    no ESP32 at all; a real reading (30-42 C) always wins over the placeholder.
+    The "Demo data (no device detected)" state is kept. The fleet site kept
+    this behaviour (§65) and docs/FLEET_MULTI_SITE.md records it.
+  - DEFENSE PREP: wrote the plain-language description of the system for the
+    panel - the ESP32 reads the sensors every 2 s, compares them against the
+    threshold bands, shows a word on screen, sounds the buzzer and sends SMS on
+    a critical value or a fall, and over WiFi PUTs a snapshot to the Firebase
+    Realtime Database every 2 s plus a history row every 30 s; the website
+    reads the database. Two corrections applied to that description because
+    the user stated them: the LED is REMOVED from the delivered hardware (the
+    screen and the buzzer carry the alert), and the SD card is NOT part of the
+    delivered system (USE_SDCARD = 0 in the deployed copy).
+  - POWER: a single USB 5 V 2 A supply cannot safely run SIM900A + ESP32 +
+    sensors, because the GSM transmit burst pulls about 2 A. Answer given:
+    supply 1 = USB 5 V to the ESP32 and the sensors, supply 2 = a separate
+    5 V 2 A adapter to the SIM900A VCC/GND only, GNDs joined at one star
+    point, and never ESP32 3V3/5V/VIN -> SIM VCC. The 220 V/10 A bench supply
+    + buck stays the single source (§54).
+
+## 68. Backfill: body-temperature sensor decision (2026-10-16)
+  The DS18B20 is not a body-temperature part, so the temperature source was
+  re-chosen against datasheet accuracy and PH price:
+  - MAX30205: +/-0.1 C at 37-39 C, clinical body temperature, I2C 0x48, 3.3 V,
+    no bus conflict with 0x57/0x68/0x69. Best accuracy, but temperature only -
+    it has no optics, so it can never replace the MAX30102 for HR/SpO2.
+  - TMP117: +/-0.1 C, about USD 11.50 (P1,000 landed). Adafruit does ship to
+    the Philippines (DHL/USPS + VAT/duty), but the PH distributors
+    (Circuitrocks, CREATELABZ, Makerlab) are cheaper; the CJMCU TMP117 board
+    re-sold on Shopee/AliExpress is about P736.
+  - MCP9808 (CJMCU, about P180-280): +/-0.25 C typical, +/-0.5 C max over
+    -20..+100 C, 0.0625 C resolution, 30 ms conversion (the DS18B20 needs
+    375-750 ms blocking, which is what forced SAMPLE_MS = 2000), I2C 0x18,
+    3.3 V.
+  DECISION: MCP9808. It passes the P3 target accuracy on typical values, needs
+  the same one-point TEMP_OFFSET_C calibration as the DS18B20, keeps the cost
+  sheet low, and drops the blocking conversion delay. Chapter 3 must state
+  "+/-0.5 C max" honestly, not +/-0.1 C.
+  CODE IMPACT: drop-in in sensors.cpp (same Vitals.tempC, same TEMP_* bands),
+  OneWire/DallasTemperature removed, 0x18 vs 0x48 vs 0x57/0x68/0x69 on
+  SDA21/SCL22 - no conflict. Firmware work NOT started (fleet doc section 7).
+
+## 69. Current state (2026-10-20, end of the fleet phase)
+  LIVE
+   - protect-fleet.vercel.app - relay + fleet site (Vercel project protect-fleet).
+   - protect-monitor.vercel.app - the old single-unit site, still the rollback.
+   - ESP32 -> HTTPS -> relay -> Firebase RTDB; the browser never talks to
+     Firebase any more, so no database key is in the page.
+  RELAY (api/)
+   - 9 endpoints: fleet, login, logout, session, unit, site, ingest, users,
+     health; plus api/_lib/ = config, db, auth, fleet, collect, preview, http,
+     mirror, users, ratelimit.
+   - DB adapter = public REST now, Admin SDK automatically once
+     FIREBASE_SERVICE_ACCOUNT exists; PREVIEW MODE is ON (fixture fleet).
+  SITE (web/index.html)
+   - Home = attention view (fleet summary + only the places that need a check
+     or went offline). Fleet = "Deployment sites" = full inventory + add-place
+     form. Dashboard/History/Alerts/Device/Analysis = operator only, behind
+     sign-in. Users = admin only. Explicit Sign out button. Labelled
+     "Analysis", not "AI Analysis".
+  TESTS
+   - npm test = 143 assertions (47 relay / 49 accounts / 47 DOM), all green -
+     re-verified today.
+  FIRMWARE
+   - Untouched by the fleet phase. The delivered copy is
+     final_protect/PROTECT/PROTECT.ino (763 lines): static HR/SpO2 drift +
+     static temperature placeholder + NTP clock + SIM900 SMS + Firebase REST
+     + SOS button + buzzer.
+   - HARDWARE AS BUILT (confirmed 2026-10-20): buzzer GPIO27, SOS button
+     GPIO4 (to GND, internal pull-up, no 10k), DS18B20 unplugged from GPIO4,
+     LEDs removed, SD card not part of the system, MAX30102 dead.
+
+  GIT
+   - Only 3 commits exist (c4d6e15, ba8cfad, b99a8e6). The whole fleet phase
+     (api/, relay/, the web/index.html rewrite, docs/FLEET_MULTI_SITE.md and
+     sections 62-69) is UNCOMMITTED and untracked. Nothing of the fleet phase
+     has been pushed.
+  SECRETS
+   - Per the user's instruction, the operator password and the session secret
+     were deliberately NOT written into this log.
+   - The caregiver numbers and the Wi-Fi password now live in a gitignored
+     `secrets.h` per sketch, with a committed `secrets_template.h`
+     (§71) — the working tree is clean, but the numbers are still in git
+     history, so they must be ROTATED (editing files is not enough).
+  OPEN
+   1. Re-pin the firmware to the rig: PIN_BUTTON = 4, buzzer = 27, and drop
+      the OneWire/DS18B20 path on GPIO4 (or move the probe) — then make
+      firmware/protect_cloud + protect_core + protect_serial match (§66).
+      Until that is done the physical SOS button does not work.
+   2. Lock the RTDB: service account + the per-device rules from the fleet
+      doc, then switch the adapter to Admin mode and turn users mode on.
+   3. Flash unit 1 with DEVICE_ID/SITE_ID, publish the /PROTECT/devices rules,
+      preview off, legacy mirror off.
+   4. MAX30102 dead -> HR/SpO2 remain placeholders. MCP9808 to make the
+      temperature real (§68).
+   5. Commit and push the fleet phase; rotate the caregiver numbers and the
+      WiFi password.
+
+## 70. System flow diagrams (2026-10-20)
+  New docs/SYSTEM_FLOW.md — three Mermaid diagrams, every arrow checked against
+  the code before writing it down:
+  1. THE UNIT — sensors (MAX/DS18B20/DS3231/MPU6050/SOS button/NTP) -> 2 s
+     sensorsRead() -> alertsEvaluate() -> screen word + buzzer GPIO27 + SMS to
+     3 caregivers + Serial, and the cloud push every 2 s / history every 30 s.
+  2. END TO END — unit -> Firebase RTDB (legacy single node today, per-device
+     paths dashed/planned) -> relay (collect -> buildFleet -> publicFleet) ->
+     website pages, plus the mirror safety net that keeps the old
+     protect-monitor site alive, and the SMS path to the caregiver phones.
+  3. THE WEBSITE AND RELAY — public vs operator vs admin vs device paths, the
+     login decision (shared password vs users mode with scrypt + server-side
+     sessions + roles + audit log), the poll cadence (fleet 5 s, unit 2 s,
+     paint 10 s) and the privacy projection (no vitals, no vital field names,
+     no device ids in the public payload).
+  Plus a pin table, an endpoint table, the file map and the known gaps.
+  VALIDATED: all three diagrams parse with mermaid v11 (parse check, not a
+  pixel render — no browser on this machine, so PNG/SVG export for the paper
+  still needs mermaid-cli or mermaid.live).
+  ALSO UPDATED this session: hardware truth corrected (buzzer GPIO27, SOS
+  button GPIO4, DS18B20 unplugged from GPIO4), docs/WIRING.md and README.md
+  rewritten to the delivered system, FLEET doc test counts fixed (143, DOM 47).
+
+## 71. Secrets moved out of the sketches + fleet phase committed (2026-10-20)
+  WHY: the fleet phase was uncommitted, and a scan of everything about to be
+  staged showed the Wi-Fi SSID + password in protect_cloud and final_protect
+  (NOT in history — new exposure) and the two caregiver numbers in five
+  already-tracked sketches (already public in commit c4d6e15).
+  PATTERN ADOPTED: every sketch now reads its local secrets from `secrets.h`
+  in its own folder. `secrets.h` is gitignored (`**/secrets.h`) and stays on
+  this machine, so the rig keeps working unchanged; `secrets_template.h` is
+  committed with empty placeholders. The sketch uses
+  `#if __has_include("secrets.h")` and falls back to the template, so a fresh
+  clone compiles as-is with no Wi-Fi and no SMS.
+  SKETCHES TOUCHED: protect_cloud (Wi-Fi + numbers), protect_iot (numbers + AP
+  password), final_protect/PROTECT (Wi-Fi + numbers), protect_core,
+  protect_serial, drill_sms, live_sms, test_gsm (numbers).
+  NOTE: the template had to be named secrets_template.h — an
+  `secrets.h.example` file is not carried into the Arduino build, so the
+  fallback include failed ("No such file or directory").
+  VERIFIED: all 8 sketches compile twice — with the real secrets.h present and
+  with it removed (fresh-clone path). Sizes unchanged: cloud 71%, iot 61%,
+  final 71%, core 26%, serial 24%, drill 20%, live 22%, test_gsm 20%.
+  STAGED SECRET SCAN: no phone number, no Wi-Fi password, no secrets.h in the
+  index — only the empty templates.
+  STILL TRUE: the numbers remain in git history (public repo), so they still
+  have to be ROTATED. Only the SIM provider can retire them.
