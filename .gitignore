@@ -20,3 +20,6 @@ build/
 Thumbs.db
 .vercel
 .env*
+
+# Research paper source (not published)
+docs/paper/
