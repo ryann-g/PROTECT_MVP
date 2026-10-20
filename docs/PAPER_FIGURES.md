@@ -206,4 +206,5 @@ docs/diagrams/01-unit.png|.svg          → Figure 7
 docs/diagrams/02-end-to-end.png|.svg    → Figure 8
 docs/diagrams/03-website-relay.png|.svg  → Figure 9
 docs/diagrams/04-control-block.png|.svg  → Figure 6 (replaces the old block diagram)
+docs/diagrams/05-control-block-detailed.png|.svg  → appendix / website variant
 ```

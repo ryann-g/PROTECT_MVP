@@ -7,7 +7,16 @@
   (§68 of the session log) and does not conflict with 0x57/0x68/0x69.
 - Use 4.7k pull-ups if breakouts lack them. Keep wires <15cm, away from buck converter.
 
-## Body temp: DS18B20 waterproof probe (1 digital pin, NOT I2C)
+## Body temp: MCP9808 (I2C 0x18) — current sensor
+- VCC → 3V3, GND → GND, SDA → GPIO21, SCL → GPIO22 (shares the bus with the
+  MAX30102, the DS3231 and the MPU6050; no dedicated pin, no pull-up needed)
+- A0/A1/A2 → GND gives the address 0x18.
+- Typical accuracy 0.25 °C over the body-temperature range; 30 ms conversion.
+- Offset-calibrate against a reference thermometer (`TEMP_OFFSET_C`).
+- It replaced the DS18B20 probe, which occupied GPIO4 — the pin now used by
+  the SOS button.
+
+## Body temp: DS18B20 waterproof probe (legacy — UNPLUGGED, do not reconnect)
 **STATUS 2026-10-20: the DS18B20 is DISCONNECTED. GPIO4 now belongs to the SOS
 button. Leave the probe unplugged — see the warning below.**
 - RED VCC → 3V3, BLACK GND → GND, YELLOW DATA → GPIO4 (was; do not reconnect)

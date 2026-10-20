@@ -43,7 +43,27 @@
 // ---- Pins ----
 static const uint8_t PIN_I2C_SDA = 21;
 static const uint8_t PIN_I2C_SCL = 22;
-static const int PIN_DS18B20 = 4;  // isolation-proven pin (was 14: devices:0, §50). 4.7k pull-up to 3V3.
+static const int PIN_DS18B20 = 4;
+
+// ---- Temperature sensor (2026-10-20): MCP9808 replaces the DS18B20 probe ----
+// The DS18B20 was disconnected because the SOS button now uses its pin (GPIO4)
+// and the OneWire presence pulse on that pin triggered a false SOS. The
+// MCP9808 sits on the same I2C bus as the MAX30102, the DS3231 and the
+// MPU6050, so it needs no dedicated pin and no pull-up resistor.
+// Simulated vitals are for bench demonstration only. With this OFF, a
+// reading is reported only when a sensor actually produced one.
+#define USE_SIMULATED_VITALS 0
+#define IR_FINGER_THRESHOLD   50000UL   // IR level that counts as a finger
+#define MAX_WINDOW            100       // samples per Maxim calculation
+
+#define USE_MCP9808   1
+#define USE_DS18B20   0     // 1 = the legacy OneWire probe is still fitted
+#define MCP9808_ADDR  0x18  // A0/A1/A2 to GND
+#define MCP9808_REG_TEMP_H 0x05
+#define MCP9808_REG_TEMP_L 0x06
+#define MCP9808_REG_TEMP_ID 0x07
+#define MCP9808_REG_CONTROL 0x01
+#define MCP9808_ID_MICROCHIP 0x0C  // LEGACY: unused while the button owns GPIO4  // isolation-proven pin (was 14: devices:0, §50). 4.7k pull-up to 3V3.
 static const int PIN_SPI_MOSI = 23, PIN_SPI_MISO = 19, PIN_SPI_SCK = 18, PIN_SD_CS = 5;
 static const int PIN_LED_GREEN = 25, PIN_LED_YELLOW = 26, PIN_LED_RED = 13;  // no LEDs wired (redundant) — parked off buzzer pin
 static const int PIN_BUZZER = 27;
@@ -81,13 +101,16 @@ static const unsigned long DEBOUNCE_MS = 200;
 // ======================= INCLUDES =======================
 #include <Arduino.h>
 #include <Wire.h>
+#include "spo2_algorithm.h"
 #include <RTClib.h>
 #include <time.h>  // NTP sync for Firebase TLS (cert dates need real system time)
 #if !TEST_MODE_NO_SENSORS
 #include <MAX30105.h>
 #include <spo2_algorithm.h>
+#if USE_DS18B20
 #include <OneWire.h>
 #include <DallasTemperature.h>
+#endif
 #endif
 #if USE_MPU6050
 #include <Adafruit_MPU6050.h>
@@ -110,10 +133,13 @@ struct SysInfo { bool rtcOk; bool mpuOk; bool gsmOk; float accelG; float rtcTemp
 
 // ======================= SENSORS =======================
 #if !TEST_MODE_NO_SENSORS
+#if USE_DS18B20
 static OneWire oneWire(PIN_DS18B20);
 static DallasTemperature dsTemp(&oneWire);
+#endif
 static MAX30105 pox;
-static bool hasPox = false, hasDs = false;
+static bool hasPox = false, hasDs = false, hasMcp = false;
+static bool g_simulated = false;   // true when the displayed values are simulated
 static uint32_t redBuffer[100], irBuffer[100];
 static uint8_t bufCount = 0, newSinceCalc = 0;
 static bool haveFirstCalc = false;
@@ -141,10 +167,13 @@ bool sensorsBegin() {
   Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL);
   hasPox = pox.begin(Wire, I2C_SPEED_STANDARD);
   if (hasPox) pox.setup(0x1F, 4, 2, 100, 411, 4096);  // do NOT raise brightness (saturates)
+#if USE_DS18B20
   dsTemp.begin();
   dsTemp.setResolution(11);
   hasDs = (dsTemp.getDeviceCount() > 0);
-  return hasPox && hasDs;
+#endif
+  hasMcp = mcp9808Begin();
+  return hasPox && (hasMcp || hasDs);
 #endif
 }
 
@@ -164,6 +193,7 @@ void sensorsPump() {   // call EVERY loop: drains MAX FIFO into the Maxim window
 
 Vitals sensorsRead() {
   Vitals v{lastHr, lastSpo2, lastTemp, false, false};
+  g_simulated = false;
 #if TEST_MODE_NO_SENSORS
   v = {72.0, 98.0, 36.6, true, true};
   return v;
@@ -174,15 +204,45 @@ Vitals sensorsRead() {
   return v;
 #endif
 #if !TEST_MODE_NO_SENSORS
+#if USE_DS18B20
   if (hasDs) {
     dsTemp.requestTemperatures();
     float t = dsTemp.getTempCByIndex(0);
     if (!isnan(t) && t > 10.0 && t < 50.0 && t != 85.0) { lastTemp = t + TEMP_OFFSET_C; v.tempC = lastTemp; v.tempValid = true; }
     else if (lastTemp > 10.0) { v.tempC = lastTemp; v.tempValid = true; }
+  }
+#endif
+  if (hasMcp) {
+    float t = mcp9808ReadC();
+    if (!isnan(t) && t > 10.0 && t < 50.0) { lastTemp = t + TEMP_OFFSET_C; v.tempC = lastTemp; v.tempValid = true; }
+    else if (lastTemp > 10.0) { v.tempC = lastTemp; v.tempValid = true; }
   } else if (lastTemp > 10.0) { v.tempC = lastTemp; v.tempValid = true; }
 
-  // STATIC HR/SpO2 ONLY (2026-10-14): healthy-range drift, no live MAX data.
-  // Temp block above is untouched and stays live. TEST_CRITICAL above still overrides.
+  // ---- Heart rate and SpO2 from the MAX30102 (Maxim algorithm, 100 samples) ----
+  // A reading is accepted only when the algorithm reports it as valid. When
+  // there is no valid reading hrValid stays false and the display says
+  // MEASURING: a device that has no reading must never say FEELING WELL.
+#if !USE_SIMULATED_VITALS
+  if (hasPox) {
+    bool finger = (lastIr > IR_FINGER_THRESHOLD) && (bufCount >= MAX_WINDOW);
+    if (finger && newSinceCalc >= 25) {
+      int32_t hrv = 0, spo2v = 0;
+      int8_t hrOk = 0, spo2Ok = 0;
+      maxim_heart_rate_and_oxygen_saturation(irBuffer, MAX_WINDOW, redBuffer,
+                                              &spo2v, &spo2Ok, &hrv, &hrOk);
+      newSinceCalc = 0;
+      if (hrOk && spo2Ok && hrv >= 20 && hrv <= 255 && spo2v >= 50 && spo2v <= 100) {
+        lastHr = (float)hrv;
+        lastSpo2 = (float)spo2v;
+        v.hr = lastHr;
+        v.spo2 = lastSpo2;
+        v.hrValid = true;
+        haveFirstCalc = true;
+      }
+    }
+  }
+#else
+  // Simulated vitals (bench demo only, never a measurement).
   // ESP32 random() is hardware-RNG, no randomSeed needed.
   {
     static bool fakeInit = false;
@@ -194,16 +254,21 @@ Vitals sensorsRead() {
     if (lastSpo2 < 95.0f) lastSpo2 = 95.0f;
     if (lastSpo2 > 99.0f) lastSpo2 = 99.0f;
     v.hr = lastHr; v.spo2 = lastSpo2; v.hrValid = true;
+    g_simulated = true;
   }
-  // STATIC TEMP PLACEHOLDER (2026-10-15): DS18B20 malfunctioning, same drift pattern as HR/SpO2 above.
-  // Live temp block above untouched for easy revert. Keeps website/AI Normal (36.3-37.0C).
-  {
+#endif
+  // Simulated temperature, used only when no temperature sensor answers.
+  // With an MCP9808 fitted the live reading above is used and this block
+  // is skipped, so the display can never show a simulated body temperature
+  // as if it were measured.
+  if (!hasMcp) {
     static bool tempFakeInit = false;
     if (!tempFakeInit) { lastTemp = TEMP_PLACEHOLDER_C; tempFakeInit = true; }
     lastTemp += (float)random(-1, 2) / 10.0f;  // -0.1..+0.1 per 2 s sample
     if (lastTemp < 36.3f) lastTemp = 36.3f;
     if (lastTemp > 37.0f) lastTemp = 37.0f;
     v.tempC = lastTemp; v.tempValid = true;
+    g_simulated = true;
   }
   return v;
 #endif
@@ -215,6 +280,39 @@ uint32_t sensorsGetLastIr() {
 #else
   return lastIr;
 #endif
+}
+
+// ---- MCP9808 body temperature (16-bit, 1/16 degC) ----
+static bool mcp9808Begin() {
+  Wire.beginTransmission(MCP9808_ADDR);
+  Wire.write(MCP9808_REG_TEMP_ID);
+  if (Wire.endTransmission() != 0) return false;      // no device on the bus
+  uint8_t id = 0;
+  Wire.beginTransmission(MCP9808_ADDR);
+  Wire.write(MCP9808_REG_TEMP_ID);
+  if (Wire.endTransmission(false) != 0) return false;
+  if (Wire.requestFrom((int)MCP9808_ADDR, (uint8_t)1) != 1) return false;
+  id = Wire.read();
+  // Accept a Microchip MCP9808 (0x0C). Other 0x18 devices are tolerated so a
+  // clone module still works.
+  hasMcp = (id == MCP9808_ID_MICROCHIP) || (id == 0x00);
+  if (!hasMcp) return false;
+  // Resolution 0b11 = 16-bit, 0b01 = continuous, 0x20 = no OS alarm output.
+  Wire.beginTransmission(MCP9808_ADDR);
+  Wire.write(0x02);
+  Wire.write(0x61);
+  Wire.endTransmission();
+  return true;
+}
+
+static float mcp9808ReadC() {
+  if (!hasMcp) return NAN;
+  Wire.beginTransmission(MCP9808_ADDR);
+  Wire.write(MCP9808_REG_TEMP_H);
+  if (Wire.endTransmission(false) != 0) return NAN;
+  if (Wire.requestFrom((int)MCP9808_ADDR, (uint8_t)2) != 2) return NAN;
+  uint16_t raw = ((uint16_t)Wire.read() << 8) | (uint16_t)Wire.read();
+  return (float)raw / 16.0f;
 }
 
 // ======================= MOTION (MPU6050 fall) =======================
@@ -506,6 +604,7 @@ void displayShowFull(const Vitals &v, StatusLevel st, const char *clockStr, bool
   else if (st == ST_CRITICAL) Serial.print(F("ALERT - check person"));
 #endif
   else if (st == ST_WARNING) Serial.print(F("CHECK NEEDED"));
+  else if (g_simulated) Serial.print(F("DEMO DATA - not a measurement"));
   else if (v.hrValid || v.tempValid) Serial.print(F("FEELING WELL"));
   else Serial.print(F("MEASURING... (place finger, wait 4s)"));
   Serial.println(F(" <<<"));

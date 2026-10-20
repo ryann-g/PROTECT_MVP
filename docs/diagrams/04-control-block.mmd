@@ -1,69 +1,43 @@
 ---
-title: "P.R.O.T.E.C.T. control block diagram (refined)"
+title: "P.R.O.T.E.C.T. control block diagram"
 config:
   flowchart:
-    wrappingWidth: 300
-    nodeSpacing: 40
-    rankSpacing: 50
-    padding: 8
+    wrappingWidth: 320
+    nodeSpacing: 45
+    rankSpacing: 60
+    padding: 10
   themeVariables:
-    fontSize: 17px
+    fontSize: 18px
 ---
-flowchart TD
-  subgraph SENSE["SENSING  ·  one cycle every 2 s"]
-    MAX["MAX30102 · 0x57 · I2C<br/>heart rate + SpO2 (PPG)"]
-    MPU["MPU6050 · 0x69 · I2C<br/>fall: spike above 2 g, then stillness"]
-    RTC["DS3231 · 0x68 · I2C<br/>timestamp, set from NTP"]
-    BTN["SOS button · GPIO4 to GND<br/>falling-edge interrupt"]
-    NTP["NTP time source · UTC+8"]
-    TEMP["DS18B20 · GPIO4 · 1-Wire<br/>disconnected at evaluation;<br/>MCP9808 (I2C 0x18) selected"]
+flowchart LR
+  subgraph IN["INPUT"]
+    direction TB
+    MAX["MAX30102<br/>0x57 · I2C<br/>HR + SpO2"]
+    MCP["MCP9808<br/>0x18 · I2C<br/>body temperature"]
+    MPU["MPU6050<br/>0x69 · I2C<br/>fall detection"]
+    RTC["DS3231<br/>0x68 · I2C<br/>timestamp from NTP"]
+    BTN["SOS button<br/>GPIO4 · interrupt"]
   end
 
-  ESP["<b>ESP32 DevKit</b> · main controller<br/>acquisition + EMA filtering<br/>Maxim HR / SpO2 computation<br/>threshold evaluation of every parameter<br/>fall rule · status word · time stamp · cloud payload"]
+  ESP["<b>ESP32 DevKit</b><br/><br/>acquisition and filtering<br/>HR / SpO2 computation<br/>threshold evaluation<br/>fall rule<br/>status word<br/>time stamping"]
+
+  subgraph OUT["OUTPUT"]
+    direction TB
+    WORD["Status word<br/>FEELING WELL · CHECK NEEDED · ALERT<br/>MEASURING · SOS-HELP"]
+    BUZZ["Piezo buzzer<br/>GPIO27 · 10 s"]
+    SMS["SIM900A SMS<br/>up to 3 caregivers"]
+    CLOUD["Cloud record<br/>every 2 s (see Figure 8)"]
+  end
 
   MAX --> ESP
+  MCP --> ESP
   MPU --> ESP
   RTC --> ESP
   BTN --> ESP
-  NTP --> ESP
-  TEMP -.-> ESP
-
-  subgraph LOCAL["LOCAL OUTPUTS  ·  one event, four consistent notifications"]
-    WORD["Status word<br/>FEELING WELL · CHECK NEEDED<br/>ALERT · MEASURING · SOS-HELP"]
-    BUZZ["Piezo buzzer · GPIO27<br/>10 s per alarm"]
-    SMS["SIM900A GSM · UART · own 5 V rail<br/>SMS to up to 3 caregivers"]
-  end
-
   ESP --> WORD
   ESP --> BUZZ
   ESP --> SMS
+  ESP --> CLOUD
 
-  subgraph CLOUD["CLOUD AND WEBSITE"]
-    WIFI["Wi-Fi · HTTPS<br/>snapshot every 2 s · history every 30 s"]
-    RTDB[("Firebase Realtime Database<br/>/PROTECT/sensors · /PROTECT/history<br/>/PROTECT/devices/&#123;id&#125; — planned")]
-    RELAY["Server-side relay (api/)<br/>site aggregation<br/>session + role checks"]
-    PUB["Public fleet view<br/>sites, unit counts, status<br/>no readings, no unit codes"]
-    OPS["Operator dashboard<br/>one unit's readings and history<br/>signed-in caregiver only"]
-  end
-
-  ESP --> WIFI --> RTDB --> RELAY
-  RELAY --> PUB
-  RELAY --> OPS
-
-  subgraph PWR["POWER"]
-    AC["220 V AC mains"] --> PS["5 V DC supply"]
-    PS --> BUCK["Buck converter<br/>3.3 V for ESP32 and sensors"]
-    PS --> SIMP["Separate 5 V / 2 A rail for the GSM module<br/>1000 uF bulk capacitor"]
-  end
-
-  BUCK --> ESP
-  SIMP --> SMS
-
-  NOTE["<b>State at the time of evaluation</b><br/>The MAX30102 was not responding and<br/>the DS18B20 probe was disconnected,<br/>so the heart rate, SpO2 and temperature<br/>displayed by the firmware were simulated.<br/>The input pin freed by the probe carried<br/>the SOS button.<br/>The 3.5-inch TFT was parked, the LED<br/>indicators were removed, and the microSD<br/>card was not part of the delivered unit —<br/>readings are logged in the cloud.<br/>The device is audible and status-word only:<br/>the word, the buzzer and the SMS carry<br/>the alert."]
-
-  ESP -.-> NOTE
-
-  classDef planned fill:#fff7ed,stroke:#ea580c,stroke-width:1px
-  classDef note fill:#f1f5f9,stroke:#64748b,stroke-dasharray: 4 3
-  class TEMP planned
-  class NOTE note
+  PWR["POWER<br/>3.3 V from a buck converter for the ESP32 and the sensors;<br/>a separate 5 V / 2 A rail with a bulk capacitor for the cellular module"]
+  ESP --- PWR

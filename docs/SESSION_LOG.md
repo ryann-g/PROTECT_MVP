@@ -952,3 +952,33 @@ Current state: protect_core = all-5 + TFT (USE_*=1, 26%); serial_check =
   Figure 6's caption and description in docs/paper/PAPER_REVISED.txt were
   rewritten to match, and the figure is embedded in the exported DOCX and PDF
   (page 33 of 91).
+
+## 73. Simplified block diagram + MCP9808 fitted (2026-10-20)
+  Two changes came out of the block-diagram review.
+  1. THE FIGURE WAS TOO HEAVY. The first refined version carried the block
+     diagram, the cloud architecture and a 13-line evaluation-state note, so it
+     duplicated Figure 8 and buried the structure. Split: 04-control-block is
+     now the short paper form (input -> controller -> output, readable in five
+     seconds) and 05-control-block-detailed keeps the long form for the
+     appendix, the website and a panelist who asks how it is put together.
+  2. TEMPERATURE IS NOW THE MCP9808, AND THE FIRMWARE SAYS SO. The figure had
+     to match the build, so the MCP9808 was actually written into the firmware:
+     read directly over I2C at 0x18 (registers 0x05/0x06, 16-bit, 1/16 degC),
+     no new library, 71% flash, both builds compile clean.
+     Firmware changes in final_protect/PROTECT/PROTECT.ino and
+     firmware/protect_cloud/protect_cloud.ino:
+       - MCP9808 support (USE_MCP9808=1), the DS18B20 path kept behind
+         USE_DS18B20=0 because the SOS button now owns GPIO4 and the OneWire
+         presence pulse on that pin triggered a false SOS;
+       - the Maxim heart-rate / SpO2 computation RESTORED in the deployed
+         build, which had been replaced by a random drift that was marked as a
+         valid measurement: the device said FEELING WELL with no finger and no
+         sensor, and a working MAX30102 would have been ignored;
+       - the simulated blocks are now behind USE_SIMULATED_VITALS (default 0)
+         and only run when the corresponding sensor does not answer;
+       - a new status word, DEMO DATA - not a measurement, replaces
+         FEELING WELL whenever the values on screen are simulated. The rule
+         stands: a device with no reading never says the patient is well.
+     Paper text updated to match: the operational definition of body
+     temperature, the Results 4.1 sensor description, the Figure 6 description
+     and Limitation 3 now all name the MCP9808 and the evaluation state.

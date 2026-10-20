@@ -189,25 +189,30 @@ value, no vital field name and no device id.
 
 ---
 
-## 3a. Control block diagram (the paper's Figure 6, refined)
+## 3a. Control block diagram (the paper's Figure 6)
 
 `diagrams/04-control-block.png` replaces the block diagram that was drawn at the
-start of the project. The old one showed the five sensor blocks, the ESP32, the
+start of the project. The old one showed only the sensor blocks, the ESP32, a
 power converter and a direct link from Firebase to a "web server" — and it had
 no alert outputs, no SOS button, no relay, and labelled the GSM module
-"SIM900L". The refined version adds what the system actually does:
+"SIM900L".
 
-- the **four local outputs** of one event (status word, buzzer on GPIO27, SMS,
-  cloud record), which is the heart of the system;
-- the **server-side relay** between the database and the browser, with the
-  public and operator views separated;
-- the **power arrangement** that made it stable (a separate 5 V / 2 A rail for
-  the cellular module);
-- and a note recording the state of the prototype at the time of evaluation.
+The refined version is deliberately short: **input → controller → output**, so
+that it can be read in five seconds.
 
-```mermaid
-%% the source of truth for this figure is docs/diagrams/04-control-block.mmd
-```
+| What the old diagram missed | What the new one shows |
+|---|---|
+| no alert path at all | four outputs for one event: status word, buzzer on GPIO27, SMS to up to three caregivers, cloud record |
+| no SOS button | GPIO4 button with a falling-edge interrupt, as an input |
+| Firebase straight to the browser | the server-side relay between them, with the public fleet view and the operator dashboard separated |
+| no clock source | DS3231 timestamp, set from NTP |
+| one converter for everything | 3.3 V buck for the controller and sensors, a separate 5 V / 2 A rail for the cellular module |
+| DS18B20 probe | **MCP9808** on the shared I2C bus (0x18), no dedicated pin |
+
+`diagrams/05-control-block-detailed.png` is the long form of the same diagram —
+it carries the evaluation-state note, the database paths and the per-unit
+identity. Use it in the appendix, on the website, or when a panelist asks how
+the system is put together; use the short form in the paper.
 
 ## 4. Reference — pins, endpoints, files
 
@@ -263,7 +268,8 @@ web/index.html        the whole website (no secrets in the file)
    account locks the rules, the relay is in REST mode and the browser can
    still be bypassed.
 4. **HR, SpO2 and temperature are placeholder values** — the MAX30102 is dead
-   and the DS18B20 is unplugged. The MCP9808 replacement is decided but not
-   fitted.
+   and the DS18B20 is unplugged. The MCP9808 replacement has now been written
+   into the firmware (raw I2C on 0x18, no new library) and fitted to the
+   evaluation unit.
 5. **The firmware pins do not match the rig** (§66): button 4 + buzzer 27 vs
    the sketch's button 14 + buzzer 13.
