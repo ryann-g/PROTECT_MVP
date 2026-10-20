@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1020" height="700" viewBox="0 0 1020 700" font-family="Helvetica, Arial, sans-serif">
+<rect width="1020" height="700" fill="#FFFFFF"/>
+<text x="40" y="46" font-size="21" font-weight="bold" fill="#0F172A">Threshold bands and the status word each produces</text>
+<text x="40" y="70" font-size="12.5" fill="#64748B">Every reading is evaluated against these bands. The band determines the status word, the buzzer and the alert. Bands as configured in the firmware.</text>
+<text x="232" y="138" font-size="14" font-weight="bold" fill="#0F172A" text-anchor="end">Heart rate</text>
+<text x="232" y="156" font-size="11.5" fill="#64748B" text-anchor="end">measured in bpm</text>
+<rect x="250.0" y="150" width="129.1" height="44" fill="#CC3311" opacity="0.9"/>
+<text x="314.5" y="178" font-size="12.5" font-weight="bold" fill="#FFFFFF" text-anchor="middle">ALERT</text>
+<rect x="379.1" y="150" width="322.7" height="44" fill="#009988" opacity="0.9"/>
+<text x="540.5" y="178" font-size="12.5" font-weight="bold" fill="#FFFFFF" text-anchor="middle">WELL</text>
+<rect x="701.8" y="150" width="129.1" height="44" fill="#EE7733" opacity="0.9"/>
+<text x="766.4" y="178" font-size="12.5" font-weight="bold" fill="#FFFFFF" text-anchor="middle">CHECK</text>
+<rect x="830.9" y="150" width="129.1" height="44" fill="#CC3311" opacity="0.9"/>
+<text x="895.5" y="178" font-size="12.5" font-weight="bold" fill="#FFFFFF" text-anchor="middle">ALERT</text>
+<line x1="250" y1="194" x2="960" y2="194" stroke="#0F172A" stroke-width="1.2"/>
+<line x1="250.0" y1="194" x2="250.0" y2="200" stroke="#0F172A" stroke-width="1.2"/>
+<text x="250.0" y="215" font-size="11.5" fill="#64748B" text-anchor="middle">30</text>
+<line x1="379.1" y1="194" x2="379.1" y2="200" stroke="#0F172A" stroke-width="1.2"/>
+<text x="379.1" y="215" font-size="11.5" fill="#64748B" text-anchor="middle">50</text>
+<line x1="701.8" y1="194" x2="701.8" y2="200" stroke="#0F172A" stroke-width="1.2"/>
+<text x="701.8" y="215" font-size="11.5" fill="#64748B" text-anchor="middle">100</text>
+<line x1="830.9" y1="194" x2="830.9" y2="200" stroke="#0F172A" stroke-width="1.2"/>
+<text x="830.9" y="215" font-size="11.5" fill="#64748B" text-anchor="middle">120</text>
+<line x1="960.0" y1="194" x2="960.0" y2="200" stroke="#0F172A" stroke-width="1.2"/>
+<text x="960.0" y="215" font-size="11.5" fill="#64748B" text-anchor="middle">140</text>
+<text x="232" y="256" font-size="14" font-weight="bold" fill="#0F172A" text-anchor="end">Blood oxygen saturation (SpO2)</text>
+<text x="232" y="274" font-size="11.5" fill="#64748B" text-anchor="end">measured in %</text>
+<rect x="250.0" y="268" width="378.7" height="44" fill="#CC3311" opacity="0.9"/>
+<text x="439.3" y="296" font-size="12.5" font-weight="bold" fill="#FFFFFF" text-anchor="middle">ALERT</text>
+<rect x="628.7" y="268" width="47.3" height="44" fill="#EE7733" opacity="0.9"/>
+<text x="652.3" y="296" font-size="12.5" font-weight="bold" fill="#FFFFFF" text-anchor="middle">CHECK</text>
+<rect x="676.0" y="268" width="284.0" height="44" fill="#009988" opacity="0.9"/>
+<text x="818.0" y="296" font-size="12.5" font-weight="bold" fill="#FFFFFF" text-anchor="middle">WELL</text>
+<line x1="250" y1="312" x2="960" y2="312" stroke="#0F172A" stroke-width="1.2"/>
+<line x1="250.0" y1="312" x2="250.0" y2="318" stroke="#0F172A" stroke-width="1.2"/>
+<text x="250.0" y="333" font-size="11.5" fill="#64748B" text-anchor="middle">85</text>
+<line x1="628.7" y1="312" x2="628.7" y2="318" stroke="#0F172A" stroke-width="1.2"/>
+<text x="628.7" y="333" font-size="11.5" fill="#64748B" text-anchor="middle">93</text>
+<line x1="676.0" y1="312" x2="676.0" y2="318" stroke="#0F172A" stroke-width="1.2"/>
+<text x="676.0" y="333" font-size="11.5" fill="#64748B" text-anchor="middle">94</text>
+<line x1="960.0" y1="312" x2="960.0" y2="318" stroke="#0F172A" stroke-width="1.2"/>
+<text x="960.0" y="333" font-size="11.5" fill="#64748B" text-anchor="middle">100</text>
+<text x="232" y="374" font-size="14" font-weight="bold" fill="#0F172A" text-anchor="end">Body temperature</text>
+<text x="232" y="392" font-size="11.5" fill="#64748B" text-anchor="end">measured in degrees C</text>
+<rect x="250.0" y="386" width="263.0" height="44" fill="#CC3311" opacity="0.9"/>
+<text x="381.5" y="414" font-size="12.5" font-weight="bold" fill="#FFFFFF" text-anchor="middle">ALERT</text>
+<rect x="513.0" y="386" width="323.4" height="44" fill="#009988" opacity="0.9"/>
+<text x="674.7" y="414" font-size="12.5" font-weight="bold" fill="#FFFFFF" text-anchor="middle">WELL</text>
+<rect x="836.4" y="386" width="18.4" height="44" fill="#EE7733" opacity="0.9"/>
+<text x="845.6" y="364" font-size="11.5" font-weight="bold" fill="#0F172A" text-anchor="middle">CHECK</text>
+<text x="845.6" y="377" font-size="10" fill="#64748B" text-anchor="middle">37.3&#8211;38</text>
+<rect x="854.8" y="386" width="105.2" height="44" fill="#CC3311" opacity="0.9"/>
+<text x="907.4" y="414" font-size="12.5" font-weight="bold" fill="#FFFFFF" text-anchor="middle">ALERT</text>
+<line x1="250" y1="430" x2="960" y2="430" stroke="#0F172A" stroke-width="1.2"/>
+<line x1="250.0" y1="430" x2="250.0" y2="436" stroke="#0F172A" stroke-width="1.2"/>
+<text x="250.0" y="451" font-size="11.5" fill="#64748B" text-anchor="middle">15</text>
+<line x1="513.0" y1="430" x2="513.0" y2="436" stroke="#0F172A" stroke-width="1.2"/>
+<text x="513.0" y="451" font-size="11.5" fill="#64748B" text-anchor="middle">25</text>
+<line x1="836.4" y1="430" x2="836.4" y2="436" stroke="#0F172A" stroke-width="1.2"/>
+<text x="836.4" y="451" font-size="11.5" fill="#64748B" text-anchor="middle">37.3</text>
+<line x1="854.8" y1="430" x2="854.8" y2="436" stroke="#0F172A" stroke-width="1.2"/>
+<line x1="960.0" y1="430" x2="960.0" y2="436" stroke="#0F172A" stroke-width="1.2"/>
+<text x="960.0" y="451" font-size="11.5" fill="#64748B" text-anchor="middle">42</text>
+<rect x="40" y="474" width="20" height="14" rx="3" fill="#009988" opacity="0.9"/>
+<text x="66" y="486" font-size="12" font-weight="bold" fill="#0F172A">WELL</text>
+<text x="118" y="486" font-size="11.5" fill="#64748B">reading inside the normal band</text>
+<rect x="356" y="474" width="20" height="14" rx="3" fill="#EE7733" opacity="0.9"/>
+<text x="382" y="486" font-size="12" font-weight="bold" fill="#0F172A">CHECK</text>
+<text x="434" y="486" font-size="11.5" fill="#64748B">outside the normal band, not yet critical</text>
+<rect x="672" y="474" width="20" height="14" rx="3" fill="#CC3311" opacity="0.9"/>
+<text x="698" y="486" font-size="12" font-weight="bold" fill="#0F172A">ALERT</text>
+<text x="750" y="486" font-size="11.5" fill="#64748B">critical, or a fall, or the emergency button</text>
+<text x="40" y="530" font-size="12" font-weight="bold" fill="#0F172A">Independent alert conditions</text>
+<rect x="40" y="542" width="452" height="58" rx="6" fill="#FEF2F2" stroke="#CC3311" stroke-width="1.2"/>
+<text x="58" y="564" font-size="12.5" font-weight="bold" fill="#CC3311">Fall detected</text>
+<text x="58" y="584" font-size="11.5" fill="#0F172A">acceleration spike above 2 g followed by stillness  &#8594;  ALERT</text>
+<rect x="512" y="542" width="452" height="58" rx="6" fill="#FEF2F2" stroke="#CC3311" stroke-width="1.2"/>
+<text x="530" y="564" font-size="12.5" font-weight="bold" fill="#CC3311">Emergency button pressed</text>
+<text x="530" y="584" font-size="11.5" fill="#0F172A">GPIO4 falling-edge interrupt  &#8594;  SOS-HELP, buzzer and SMS</text>
+<rect x="40" y="614" width="924" height="46" rx="6" fill="#F1F5F9" stroke="#94A3B8" stroke-width="1.2"/>
+<text x="58" y="635" font-size="12.5" font-weight="bold" fill="#0F172A">No valid reading</text>
+<text x="176" y="635" font-size="11.5" fill="#0F172A">no finger on the sensor, or the sensor is not answering  &#8594;  MEASURING, never a status word: a device with no reading does not say the patient is well.</text>
+<text x="40" y="686" font-size="11" fill="#64748B">The lower temperature band is 25.0 degrees C, set so that a room-temperature reading does not trigger the alarm; it is lower than a clinical threshold and is listed as a limitation.</text>
+</svg>
