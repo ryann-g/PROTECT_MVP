@@ -189,6 +189,26 @@ value, no vital field name and no device id.
 
 ---
 
+## 3a. Control block diagram (the paper's Figure 6, refined)
+
+`diagrams/04-control-block.png` replaces the block diagram that was drawn at the
+start of the project. The old one showed the five sensor blocks, the ESP32, the
+power converter and a direct link from Firebase to a "web server" — and it had
+no alert outputs, no SOS button, no relay, and labelled the GSM module
+"SIM900L". The refined version adds what the system actually does:
+
+- the **four local outputs** of one event (status word, buzzer on GPIO27, SMS,
+  cloud record), which is the heart of the system;
+- the **server-side relay** between the database and the browser, with the
+  public and operator views separated;
+- the **power arrangement** that made it stable (a separate 5 V / 2 A rail for
+  the cellular module);
+- and a note recording the state of the prototype at the time of evaluation.
+
+```mermaid
+%% the source of truth for this figure is docs/diagrams/04-control-block.mmd
+```
+
 ## 4. Reference — pins, endpoints, files
 
 ### Pins as built on the rig

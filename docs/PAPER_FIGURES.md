@@ -15,6 +15,7 @@ Paper files this was checked against (both are publicly readable):
 
 | New figure | Chapter / section | Put it immediately after | Why there |
 |---|---|---|---|
+| **Figure 6 (replaces the old block diagram)** — Refined Control Block Diagram | Ch. 3 Methodology → *Design and Development* | the old **Figure 6. Control Block Diagram** | The old diagram had no alert outputs, no SOS button and no relay, and labelled the GSM module "SIM900L". `docs/diagrams/04-control-block.png` replaces it; the caption and description are in `docs/paper/PAPER_REVISED.txt`. |
 | **Figure 7** — Monitoring and Alert Flow of the Unit | Ch. 3 Methodology → *Design and Development* | the **"Algorithm Development"** paragraph | That paragraph describes exactly this logic in words ("check the health data against limits… started the alert parts, sent an SMS, and updated the web application"). The figure turns that sentence into a diagram. |
 | **Figure 8** — End-to-End Data Flow: Unit → Cloud → Caregiver Web Application | Ch. 3 Methodology → *Design and Development* | the **Control Block Diagram** (Figure 6) and its description | The control block diagram stops at "sends the data through IoT to the web application". This figure continues that sentence: what happens between the unit and the caregiver's screen. |
 | **Figure 9** — Access Control and Data Privacy of the Web Application | Ch. 3 Methodology → *Design and Development* | **Figure 8** | Keeps the data-flow story in one place: where the data goes, and who is allowed to see it. Add a forward-reference sentence in the *Design Consideration → Web Application* paragraph. |
@@ -204,4 +205,5 @@ Local files:
 docs/diagrams/01-unit.png|.svg          → Figure 7
 docs/diagrams/02-end-to-end.png|.svg    → Figure 8
 docs/diagrams/03-website-relay.png|.svg  → Figure 9
+docs/diagrams/04-control-block.png|.svg  → Figure 6 (replaces the old block diagram)
 ```

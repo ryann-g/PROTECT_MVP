@@ -923,3 +923,32 @@ Current state: protect_core = all-5 + TFT (USE_*=1, 26%); serial_check =
   index — only the empty templates.
   STILL TRUE: the numbers remain in git history (public repo), so they still
   have to be ROTATED. Only the SIM provider can retire them.
+
+## 72. Refined control block diagram (2026-10-20)
+  Checked the block diagram the paper already had (extracted from the Google
+  Doc export) and replaced it.
+  WHAT THE OLD DIAGRAM SHOWED: 12V/10A -> buck converter -> ESP32; the
+  MAX30102, MPU6050, DS3231 and DS18B20 feeding the ESP32; the SIM900A
+  feeding the ESP32; and ESP32 -> FIREBASE -> WEB SERVER. It appeared twice in
+  the paper (body Figure 6 and a near-duplicate in Appendix E).
+  WHAT WAS WRONG WITH IT
+   - no alert outputs at all: no buzzer, no SMS, no status word - the system is
+     an alerting device and its block diagram showed no alert path;
+   - no SOS button, although the button is a required component;
+   - "WEB SERVER" straight after Firebase, which is the architecture before
+     the relay was built; the browser now talks to a server-side relay and
+     never to the database;
+   - no NTP clock, although the DS3231 is set from network time;
+   - power drawn from one converter for the ESP32 and the cellular module,
+     which is the arrangement that caused the brownout resets;
+   - the body version labels the module "SIM900L" while the text and the
+     appendix say SIM900A.
+  THE NEW FIGURE: docs/diagrams/04-control-block.png|.svg (source .mmd).
+  Four functional groups - sensing, processing (ESP32), local outputs, cloud
+  and website - plus the power arrangement, and a note that records the state
+  of the prototype at the time of evaluation (MAX30102 not responding, DS18B20
+  disconnected, TFT parked, LEDs removed, no microSD), so that the figure and
+  the results in Chapter 4 are read against the hardware that was evaluated.
+  Figure 6's caption and description in docs/paper/PAPER_REVISED.txt were
+  rewritten to match, and the figure is embedded in the exported DOCX and PDF
+  (page 33 of 91).
