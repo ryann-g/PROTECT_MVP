@@ -6,6 +6,24 @@ Every arrow below was checked against the code (files listed at the end).
 **Legend:** solid = live now · dashed = specified and documented, not running
 yet · amber = known gap.
 
+**Download the images** (PNG = white background for documents, SVG = vector,
+scales without blurring):
+
+| Diagram | PNG | SVG |
+|---|---|---|
+| 1. The unit | [01-unit.png](diagrams/01-unit.png) | [01-unit.svg](diagrams/01-unit.svg) |
+| 2. End to end | [02-end-to-end.png](diagrams/02-end-to-end.png) | [02-end-to-end.svg](diagrams/02-end-to-end.svg) |
+| 3. Website and relay | [03-website-relay.png](diagrams/03-website-relay.png) | [03-website-relay.svg](diagrams/03-website-relay.svg) |
+
+Regenerate them after editing a diagram:
+
+```bash
+npm install @mermaid-js/mermaid-cli@11.9.0        # once
+# split the mermaid blocks out of this file, then:
+mmdc -i diagram.mmd -o docs/diagrams/name.svg -b transparent
+mmdc -i diagram.mmd -o docs/diagrams/name.png -b white -s 2
+```
+
 ---
 
 ## 1. The unit (ESP32)
