@@ -1,0 +1,11 @@
+node_modules
+.git
+.env
+.env.*
+.env.local
+vercel.json
+firmware
+docs
+relay
+PRD.md
+README.md

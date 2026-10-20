@@ -1,0 +1,22 @@
+# Node / Vercel
+node_modules/
+.vercel/
+.vercel.*
+.env
+.env.*
+*.local
+
+# Local secrets (Wi-Fi password, caregiver numbers) - keep secrets.h.example
+**/secrets.h
+
+# Arduino / build artifacts
+*.hex
+*.elf
+*.bin
+build/
+
+# OS
+.DS_Store
+Thumbs.db
+.vercel
+.env*

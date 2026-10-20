@@ -1,0 +1,18 @@
+{
+  "name": "protect-fleet-relay",
+  "version": "1.0.0",
+  "private": true,
+  "description": "P.R.O.T.E.C.T fleet relay - device uplink, public fleet view, operator detail",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node relay/test/api.test.js && node relay/test/users.test.js && node relay/test/site.test.js",
+    "test:api": "node relay/test/api.test.js",
+    "test:users": "node relay/test/users.test.js",
+    "test:site": "node relay/test/site.test.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^14.5.0"
+  }
+}
