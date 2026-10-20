@@ -7,7 +7,15 @@ Still hand, seated, room 25-30C, forehead dry, finger warm, sensor windows clean
 For each of 30 trials (rest + post-activity mix):
 1. Record PROTECT HR/SpO2/Temp + RTC timestamp from TFT/SD.
 2. Within 30s record reference oximeter HR/SpO2 + digital thermometer temp.
-3. Enter row in `data/accuracy_n30.csv`: `trial,protect_hr,ref_hr,protect_spo2,ref_spo2,protect_temp,ref_temp,note`
+3. Enter the row in `data/accuracy_n30.csv`, using the header of
+   `data/accuracy_n30_template.csv`:
+   `participant,reading,hr_prototype,hr_reference,spo2_prototype,spo2_reference,temp_prototype,temp_reference`
+   Use participant codes, not names.
+4. When the file is complete, build the agreement figure (scatter +
+   Bland-Altman, with the bias, the limits of agreement and the paired
+   t-test computed from the file):
+   `python3 docs/paper/make_agreement_figure.py data/accuracy_n30.csv`
+   Nothing in that figure is typed by hand.
 
 Analyze: mean, SD, mean difference, paired t-test (H1/Ho), Bland-Altman note. Target: HR ±5 BPM, SpO2 ±2%, Temp ±0.3C.
 

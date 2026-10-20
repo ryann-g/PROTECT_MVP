@@ -1042,3 +1042,27 @@ Current state: protect_core = all-5 + TFT (USE_*=1, 26%); serial_check =
   and the latency chart Figure 12, and the Figure 6 description now cites
   Figure 10 in the running text, as the standard requires every figure to be
   cited before it appears.
+
+## 76. Agreement figure generator + data template (2026-10-20)
+  The next figure recommended by the ARS standards: Chapter 3 promises a
+  Bland-Altman analysis and Chapter 4 never delivers it, so the generator was
+  written now, while the calibration test is still ahead.
+  docs/paper/make_agreement_figure.py reads the paired readings and draws, per
+  parameter, a prototype-against-reference scatter with the identity line and
+  the fitted line, and the matching Bland-Altman plot of the difference against
+  the mean with the bias line, the 95 % limits of agreement (bias +/- 1.96 SD)
+  and the two-tailed paired t-test. Every statistic is computed from the file;
+  the t-test uses a regularised incomplete beta implementation, so no library
+  beyond the standard library is needed.
+  Input format and the one-command workflow are documented in data/README.md;
+  data/accuracy_n30_template.csv holds the empty template. The synthetic file
+  used to test the generator was deleted, so that nothing in data/ can be
+  mistaken for a measurement.
+  NOTE ON THE TABLE IT WILL REPLACE: in Table 7 the heart-rate bias is printed
+  as +3.62 bpm while the prototype mean (74.2) is LOWER than the reference
+  mean (77.82), and the prose says the prototype "recorded a positive bias" -
+  the sign convention is inconsistent with the SpO2 row, which reads -1.30 %.
+  The device actually reads low on both parameters, and a low-reading
+  oximeter is the dangerous direction. The Bland-Altman panel makes the sign
+  unambiguous and the paired t-test states whether the difference is
+  significant, which the table does not.
