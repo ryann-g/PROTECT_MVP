@@ -1500,3 +1500,18 @@ Restored with `npm i --no-save jsdom playwright-core@1.64.1`; package.json
 stays clean. `npm test` = 203 green (api 81 / users 49 / site 73).
 Scratch verification scripts live in /tmp (shot.cjs, scan.cjs, scan2.cjs,
 fractional.cjs, probe-inset.cjs, probe-ring.cjs, verify-live.cjs).
+
+### Resolution (user-verified)
+The fringe survived `0f1a39b` (ring+inset shadow) and `eefcd76` (straight
+inset spine) on the user's screen — their screenshots proved every plain
+1px border on the page renders clean locally and only the curved/inset
+saturated strip seamed. Final call (user's): **remove the coloured
+status bars entirely** — `6f45cb8`: place cards are now plain bordered
+cards like `.stat`, `--bar`/background-size scaffolding deleted,
+responsive padding reverted, s-* classes kept in markup (unstyled).
+Status colour lives only on the status chip (ALERT/OK/OFFLINE).
+Live build verified (etag `b4640349…`, 12:26:55 GMT, 0 bar remnants,
+203/203 green) and the user confirmed clean on their machine.
+Lesson recorded: on this GPU rasterizer a saturated strip along a
+rounded card edge fringes at multiple zoom levels no matter how it's
+painted; don't paint saturated colour on card edges — use chips.
