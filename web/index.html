@@ -122,12 +122,14 @@ main{max-width:1200px;margin:0 auto;padding:22px 20px 64px}
 
 /* ---------- place cards ---------- */
 .places{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:12px}
-/* Place cards: draw the 1px outline and the 4px accent bar as box-shadow
-   layers instead of borders — Chromium anti-aliases a 4px border joined to
-   1px borders around a rounded corner with a dark seam on the card flanks
-   (desktop GPU rasterizer, visible at fractional zoom/DPI). Shadow layers
-   never form border trapezoids and stay pixel-clean on every rasterizer. */
-.place{--bar:var(--nodata);background:var(--surf);border-radius:var(--r-lg);padding:14px 16px 14px 18px;box-shadow:0 0 0 1px var(--line),inset 4px 0 0 var(--bar)}
+/* Place-card status bar: a straight inset "spine" instead of a full-height
+   bar hugging the card edge. Saturated colour following the rounded
+   silhouette developed a dark anti-aliasing fringe along the left flank on
+   some desktop GPU rasterizers (the same page's plain 1px borders are
+   clean there, and no headless render reproduces it at any device scale).
+   A bar whose edges are straight lines has nothing to fringe, at any
+   zoom or DPI, on any rasterizer. */
+.place{--bar:var(--nodata);background-color:var(--surf);background-image:linear-gradient(var(--bar),var(--bar));background-repeat:no-repeat;background-size:4px calc(100% - 40px);background-position:4px center;border:1px solid var(--line);border-radius:var(--r-lg);padding:14px 16px 14px 22px}
 .place.s-ok{--bar:var(--ok)}
 .place.s-check{--bar:var(--check)}
 .place.s-alert{--bar:var(--alert)}
@@ -270,7 +272,7 @@ footer{border-top:1px solid var(--line);margin-top:34px;padding:18px 20px;text-a
 @media (max-width:640px){
   main{padding:16px 14px 56px}
   .topbar-row{padding:8px 14px}
-  .place{padding:12px 13px 12px 15px}
+  .place{padding:12px 13px 12px 20px}
   .page-head h1{font-size:1.3125rem}
 }
 </style>
