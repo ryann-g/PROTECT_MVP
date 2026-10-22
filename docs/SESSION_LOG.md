@@ -1422,3 +1422,81 @@ Files (`git status` 26 modified, 1 new): the 7 firmware sketches + finals,
 `api/_lib/thresholds.js` (new), `api/_lib/{collect,fleet}.js`,
 `api/{fleet,session,unit}.js`, `web/index.html`, 3 tests, README,
 docs/{SESSION_LOG,WIRING,FLEET_MULTI_SITE}.md, `.gitignore`.
+
+## 80. Ops-console polish: page frame, card edges, chip alignment, wording (2026-10-22)
+
+### Commits
+- `83a6e6f` — kill the blue page-focus rectangle (`.page:focus` outline:
+  none, after the global `:focus-visible` rule so interactive controls keep
+  their rings) and remove the `.place` box-shadow (which at the time I
+  believed caused doubled card edges — that diagnosis was wrong, see below).
+- `e36f1c4` — chip/pill alignment + operator wording. `.unit-row` is a
+  4-column grid (`minmax(0,1fr) auto auto auto`, uid ellipsis, `.ago`
+  right-pinned), `.place-meta .chip{margin-left:auto}`, `.reading` is flex
+  with chips pinned bottom, `.v{min-height:2.1rem}` + `.v.sv` for small
+  values so rows stop wobbling. Wording: "Fixture"→"Demo data",
+  "Band:"→"Checked against …", "SMS module"→"Text messages"; wire words
+  translated through a `WIRE_WORDS` map (`OKAY`→Running normally,
+  `FALL DETECTED`→Fall detected, `MESSAGE SENT`→Message sent, `ACTIVE`→
+  Ready) with the device's verbatim word shown in the note; connection
+  cards relabelled (Unit status / Reading quality). No wording pins
+  changed meaning; 203/203 green.
+- `0f1a39b` — the actual card-edge fix (see root cause below).
+
+### Git ↔ Vercel linking (done by the user)
+The repo is now connected the way we wanted: pushes to `main` auto-deploy
+(verified live — a push triggered its own deployment at 12:10 GMT).
+Do NOT run `vercel --prod --yes` routinely any more; it is a rescue path
+only. First `vercel git connect` CLI attempt failed; the user completed
+the link by hand. API confirms `link:{type:"github",org:"ryann-g",
+repo:"PROTECT_MVP",productionBranch:"main"}`.
+
+### Card-edge root cause (verified with headless screenshots + pixel scans)
+Symptom: dark curved "doubled" edges flanking the `.place` accent bars on
+the user's desktop, persisting after the box-shadow removal. Method: since
+this box has no browser, installed `chromium-headless-shell` via
+`npx playwright@1.64.1 install` + `playwright-core@1.64.1 --no-save`, then
+screenshot-clip-carded the live page at device scale factors 1 / 1.1 /
+1.25 / 4 and dumped raw pixels through canvas `getImageData`.
+
+Findings:
+- The served CSS (both `e36f1c4` and today's builds) has no box-shadow,
+  outline or filter on `.place`; only 7 box-shadow declarations exist, none
+  target place cards. The old shadow was NOT the culprit.
+- Headless renders are pixel-perfect at every scale factor: at the straight
+  edge the transition is page-bg (244,247,251) → pure red `--alert`
+  (192,38,28, sum 258) → white interior, with ZERO dark seam pixels, even
+  through the corner curve, even at fractional DSF.
+- Therefore the seam is produced by the user's desktop GPU rasterizer
+  (Windows Chrome/ANGLE): the one structure it meshes badly is a **4px
+  border-left joined to 1px borders around rounded corners** — a border
+  trapezoid path headless Linux doesn't hit. Perceived "doubled right
+  edges" are the same seam; my earlier "dark stripe" impressions in 4×
+  crops were the red-on-white contrast illusion, not pixels (scans prove
+  it).
+
+Fix shipped (`0f1a39b`): stop drawing borders on place cards entirely.
+`.place` now has no `border` at all; the 1px outline is
+`box-shadow:0 0 0 1px var(--line)` and the accent bar is
+`inset 4px 0 0 var(--bar)` with `--bar` set per state (s-ok→--ok,
+s-check→--check, s-alert→--alert, s-offline/s-nodata→--edge). Shadow
+layers never form border trapezoids, so the seam path is gone structurally.
+`border` count for place cards on the server: 0 occurrences of
+`border-left`. Responsive padding rule (line ~268) untouched.
+
+Post-deploy verification on the live build (etag `386e1ac7…`,
+2026-10-22 12:10:20 GMT, 69 931 bytes): live crops of the left flank and
+the inter-card gap at DSF 1 and 1.25 — darkest pixel is the pure accent
+(258) or light border grey (689), dark(<220) = 0 everywhere. User should
+hard-reload (Ctrl+Shift+R) and confirm on their machine; if any seam
+survives on a *plain* right border elsewhere (`.stat`/`.reading` etc.),
+the same ring treatment (`border:1px` → `box-shadow:0 0 0 1px`) can be
+extended to the card family — deliberately not done until confirmed.
+
+### Test-suite infra note
+`node_modules` lost `jsdom` when the `--no-save` playwright install pruned
+it (jsdom is not in package.json; it was an earlier ad-hoc install).
+Restored with `npm i --no-save jsdom playwright-core@1.64.1`; package.json
+stays clean. `npm test` = 203 green (api 81 / users 49 / site 73).
+Scratch verification scripts live in /tmp (shot.cjs, scan.cjs, scan2.cjs,
+fractional.cjs, probe-inset.cjs, probe-ring.cjs, verify-live.cjs).
