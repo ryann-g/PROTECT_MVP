@@ -8,33 +8,53 @@
 // ids: a visitor learns which places are covered and whether a place needs
 // attention, and nothing about any individual.
 
+const { classify, worst, validTemp } = require('./thresholds');
+
 const STALE_MS = 20000;
 
-// A temperature outside this band is a broken sensor reading, not a body
-// temperature - the website applies the same rule, so the fleet status can
-// never contradict the value shown on screen.
-function validTemp(value) {
-  const t = Number(value) || 0;
-  return t >= 30 && t <= 42 && t !== 85;
-}
+// The warning and critical bands come from ./thresholds, which is a
+// transcription of the firmware's own constants. The wire 'status' field
+// only distinguishes OKAY from FALL DETECTED, so the bands are derived here.
+//
+// A value of 0 means "no reading" and is not graded. A temperature outside
+// the plausible body-temperature window is a broken sensor, not a reading,
+// so it is neither shown nor graded.
 
-// Same thresholds the website displays (HR 50-120, SpO2 92, temp 33-38).
-// The wire 'status' field only distinguishes OKAY from FALL DETECTED, so the
-// warning/critical bands are derived here.
-function deriveStatus(s) {
-  if (!s) return 'NODATA';
-  if (String(s.status || '').toUpperCase().indexOf('FALL') > -1) return 'ALERT';
+// Per-vital band for one sensor snapshot. Used by the operator view so each
+// number on screen carries the band it was judged against.
+function classifyVitals(s) {
+  const out = { heart_rate: 'nodata', spo2: 'nodata', temperature: 'nodata' };
+  if (!s) return out;
   const bpm = Number(s.heart_rate) || 0;
   const spo2 = Number(s.spo2) || 0;
   const temp = validTemp(s.temperature) ? Number(s.temperature) : 0;
-  if (!bpm && !spo2) return 'NODATA';
-  if ((bpm && (bpm < 50 || bpm > 120)) || (spo2 && spo2 < 92) || (temp && (temp < 33 || temp > 38))) {
-    return 'ALERT';
-  }
-  if ((bpm && (bpm < 60 || bpm > 100)) || (spo2 && spo2 < 94) || (temp && (temp > 37.5 || temp < 35.5))) {
-    return 'CHECK';
-  }
-  return 'OK';
+  if (bpm) out.heart_rate = classify('heart_rate', bpm);
+  if (spo2) out.spo2 = classify('spo2', spo2);
+  if (temp) out.temperature = classify('temperature', temp);
+  return out;
+}
+
+// The worst band across a snapshot, as one word. Used for a history row,
+// where there is no single live reading to point at.
+function vitalsBand(s) {
+  const v = classifyVitals(s);
+  const levels = [v.heart_rate, v.spo2, v.temperature].filter((x) => x !== 'nodata');
+  if (!levels.length) return 'nodata';
+  const w = worst(levels);
+  return w === 'alert' ? 'alert' : w === 'check' ? 'check' : 'ok';
+}
+
+function deriveStatus(s) {
+  if (!s) return 'NODATA';
+  if (String(s.status || '').toUpperCase().indexOf('FALL') > -1) return 'ALERT';
+  const levels = [];
+  const v = classifyVitals(s);
+  if (v.heart_rate !== 'nodata') levels.push(v.heart_rate);
+  if (v.spo2 !== 'nodata') levels.push(v.spo2);
+  if (v.temperature !== 'nodata') levels.push(v.temperature);
+  if (!levels.length) return 'NODATA';
+  const w = worst(levels);
+  return w === 'alert' ? 'ALERT' : w === 'check' ? 'CHECK' : 'OK';
 }
 
 function isOnline(sensor, now, staleMs) {
@@ -128,4 +148,4 @@ function operatorFleet(fleet) {
   }));
 }
 
-module.exports = { deriveStatus, isOnline, buildFleet, publicFleet, operatorFleet, STALE_MS };
+module.exports = { deriveStatus, classifyVitals, vitalsBand, isOnline, buildFleet, publicFleet, operatorFleet, STALE_MS };

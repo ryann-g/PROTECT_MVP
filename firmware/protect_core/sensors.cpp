@@ -1,11 +1,11 @@
-// sensors.cpp — Final: MAX30102 + DS18B20 waterproof probe (+ DS3231-mini in logger.cpp).
+// sensors.cpp — Final: MAX30102 + MCP9808 body temperature (+ DS3231-mini in logger.cpp).
 // - MAX30102 via SparkFun MAX30105 lib (I2C 0x57), Maxim
 //   maxim_heart_rate_and_oxygen_saturation() on 100-sample (4s @25sps) window,
 //   rolling recalc every ~25 new samples (~1s). Non-blocking: each sensorsRead()
 //   drains FIFO, appends, recalculates only when enough new data arrived.
 // - Finger gate IR>50000; no finger => hrValid=false so TFT shows "--".
-// - DS18B20 on PIN_DS18B20 via OneWire (waterproof probe, 4.7k pull-up to 3V3,
-//   11-bit = 375ms conversion, + TEMP_OFFSET_C). -127 = disconnected, 85 = power-on reset.
+// - MCP9808 on I2C 0x18 (+ TEMP_OFFSET_C). 30 ms conversion, no blocking read,
+//   1/16 degC resolution. No answer = no temperature reading.
 #include "sensors.h"
 #include "config.h"
 #include <Wire.h>
@@ -13,12 +13,8 @@
 #if !TEST_MODE_NO_SENSORS
 #include <MAX30105.h>
 #include <spo2_algorithm.h>
-#include <OneWire.h>
-#include <DallasTemperature.h>
-static OneWire oneWire(PIN_DS18B20);
-static DallasTemperature dsTemp(&oneWire);
 static MAX30105 pox;
-static bool hasPox = false, hasDs = false;
+static bool hasPox = false, hasMcp = false;
 
 // Maxim window: 100 samples = 4s @25sps effective (100sps / avg4).
 static uint32_t redBuffer[100];
@@ -33,6 +29,30 @@ static uint32_t lastIr = 0;
 
 static float lastHr = 0, lastSpo2 = 0, lastTemp = 0;
 
+// ---- MCP9808 body temperature (16-bit, 1/16 degC) ----
+static bool mcp9808Begin() {
+  Wire.beginTransmission(MCP9808_ADDR);
+  Wire.write(MCP9808_REG_TEMP_ID);
+  if (Wire.endTransmission() != 0) return false;      // no device on the bus
+  Wire.beginTransmission(MCP9808_ADDR);
+  Wire.write(MCP9808_REG_TEMP_ID);
+  if (Wire.requestFrom((int)MCP9808_ADDR, (uint8_t)1) != 1) return false;
+  uint8_t id = Wire.read();
+  // Accept a Microchip MCP9808 (0x0C). Other 0x18 devices are tolerated so a
+  // CJMCU clone still answers.
+  hasMcp = (id == MCP9808_ID_MICROCHIP) || (id == 0x00);
+  return hasMcp;
+}
+
+static float mcp9808ReadC() {
+  Wire.beginTransmission(MCP9808_ADDR);
+  Wire.write(MCP9808_REG_TEMP_H);
+  if (Wire.requestFrom((int)MCP9808_ADDR, (uint8_t)2) != 2) return NAN;
+  uint16_t raw = (uint16_t)Wire.read() << 8;
+  raw |= Wire.read();
+  return (float)raw / 16.0f;
+}
+
 bool sensorsBegin() {
 #if TEST_MODE_NO_SENSORS
   return true;
@@ -46,10 +66,8 @@ bool sensorsBegin() {
     // ADC 4096 -> ~25sps usable for Maxim algorithm.
     pox.setup(0x1F, 4, 2, 100, 411, 4096);
   }
-  dsTemp.begin();
-  dsTemp.setResolution(11);  // 375ms conversion (vs 750ms at 12-bit), +-0.25C fine for body
-  hasDs = (dsTemp.getDeviceCount() > 0);
-  return hasPox && hasDs;
+  hasMcp = mcp9808Begin();
+  return hasPox && hasMcp;
 #endif
 }
 
@@ -108,10 +126,9 @@ Vitals sensorsRead() {
   return v;
 #endif
 #if !TEST_MODE_NO_SENSORS
-  if (hasDs) {
-    dsTemp.requestTemperatures();
-    float t = dsTemp.getTempCByIndex(0);  // -127 = disconnected, 85 = power-on reset
-    if (!isnan(t) && t > 10.0 && t < 50.0 && t != 85.0) { lastTemp = t + TEMP_OFFSET_C; v.tempC = lastTemp; v.tempValid = true; }
+  if (hasMcp) {
+    float t = mcp9808ReadC();
+    if (!isnan(t) && t > 10.0 && t < 50.0) { lastTemp = t + TEMP_OFFSET_C; v.tempC = lastTemp; v.tempValid = true; }
     else if (lastTemp > 10.0) { v.tempC = lastTemp; v.tempValid = true; }
   } else if (lastTemp > 10.0) { v.tempC = lastTemp; v.tempValid = true; }
 

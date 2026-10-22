@@ -1,16 +1,18 @@
 /*
   P.R.O.T.E.C.T - ALL-IN-ONE sketch (one file, no extra tabs)
-  Sensors : MAX30102 (HR + SpO2), DS18B20 (temp), DS3231 (RTC), MPU6050 (fall)
+  Sensors : MAX30102 (HR + SpO2), MCP9808 (temp), DS3231 (RTC), MPU6050 (fall)
   Output  : LEDs + buzzer, SOS button (optional), SIM900 SMS, Serial Monitor @115200
   Cloud   : Wi-Fi + Firebase Realtime Database  ->  /PROTECT/sensors and /PROTECT/history
 
   Libraries (Library Manager): SparkFun MAX3010x, RTClib, Adafruit MPU6050
-    (+ Adafruit Unified Sensor, BusIO), OneWire, DallasTemperature.
+    (+ Adafruit Unified Sensor, BusIO). No OneWire library: the MCP9808
+    replaced the DS18B20 probe and sits on the I2C bus.
     No Firebase client lib needed (built-in WiFiClientSecure + HTTPClient REST).
   Board: ESP32 Dev Module.
 
   REPO NOTES (2026-10-14, do not revert):
-  - PIN_DS18B20 = 4 (isolation-proven; GPIO14 read devices:0 on this rig, §50).
+  - The DS18B20 probe is gone; the MCP9808 (I2C 0x18) is the temperature
+    sensor. GPIO4 belongs to the SOS button (§66).
   - GSM waits call sensorsPump() (§55 fix: blocking SMS starved the Maxim
     window and held HR:0 with IR present while alerting).
   - Cloud = lightweight HTTPS REST (Mobizt client died in mConnectSSL on this
@@ -43,7 +45,6 @@
 // ---- Pins ----
 static const uint8_t PIN_I2C_SDA = 21;
 static const uint8_t PIN_I2C_SCL = 22;
-static const int PIN_DS18B20 = 4;
 
 // ---- Temperature sensor (2026-10-20): MCP9808 replaces the DS18B20 probe ----
 // The DS18B20 was disconnected because the SOS button now uses its pin (GPIO4)
@@ -57,13 +58,12 @@ static const int PIN_DS18B20 = 4;
 #define MAX_WINDOW            100       // samples per Maxim calculation
 
 #define USE_MCP9808   1
-#define USE_DS18B20   0     // 1 = the legacy OneWire probe is still fitted
 #define MCP9808_ADDR  0x18  // A0/A1/A2 to GND
 #define MCP9808_REG_TEMP_H 0x05
 #define MCP9808_REG_TEMP_L 0x06
 #define MCP9808_REG_TEMP_ID 0x07
 #define MCP9808_REG_CONTROL 0x01
-#define MCP9808_ID_MICROCHIP 0x0C  // LEGACY: unused while the button owns GPIO4  // isolation-proven pin (was 14: devices:0, §50). 4.7k pull-up to 3V3.
+#define MCP9808_ID_MICROCHIP 0x0C
 static const int PIN_SPI_MOSI = 23, PIN_SPI_MISO = 19, PIN_SPI_SCK = 18, PIN_SD_CS = 5;
 static const int PIN_LED_GREEN = 25, PIN_LED_YELLOW = 26, PIN_LED_RED = 13;  // no LEDs wired (redundant) — parked off buzzer pin
 static const int PIN_BUZZER = 27;
@@ -79,7 +79,10 @@ static const float SPO2_WARN = 94.0, SPO2_CRIT = 93.0;
 static const float TEMP_LOW_WARN = 25.0, TEMP_HIGH_WARN = 37.3;
 static const float TEMP_LOW_CRIT = 25.0, TEMP_HIGH_CRIT = 38.0;
 static const float TEMP_OFFSET_C = 0.0;
-static const float TEMP_PLACEHOLDER_C = 36.6;  // website fallback when DS18B20 has no data (never send 0)
+// A temperature is held for this long after the sensor last answered. After
+// that the device reports no temperature at all, rather than a stale number
+// that looks current on the website.
+static const unsigned long TEMP_HOLD_MS = 60000;
 
 // ---- Fall detection (MPU6050 at 0x69, AD0 -> 3V3) ----
 static const uint8_t MPU6050_ADDR = 0x69;
@@ -107,10 +110,6 @@ static const unsigned long DEBOUNCE_MS = 200;
 #if !TEST_MODE_NO_SENSORS
 #include <MAX30105.h>
 #include <spo2_algorithm.h>
-#if USE_DS18B20
-#include <OneWire.h>
-#include <DallasTemperature.h>
-#endif
 #endif
 #if USE_MPU6050
 #include <Adafruit_MPU6050.h>
@@ -133,13 +132,14 @@ struct SysInfo { bool rtcOk; bool mpuOk; bool gsmOk; float accelG; float rtcTemp
 
 // ======================= SENSORS =======================
 #if !TEST_MODE_NO_SENSORS
-#if USE_DS18B20
-static OneWire oneWire(PIN_DS18B20);
-static DallasTemperature dsTemp(&oneWire);
-#endif
 static MAX30105 pox;
-static bool hasPox = false, hasDs = false, hasMcp = false;
+static bool hasPox = false, hasMcp = false;
 static bool g_simulated = false;   // true when the displayed values are simulated
+// What the published numbers actually are: MEASURED, PARTIAL, SIMULATED or
+// NONE. The website shows this word, so a demonstration value can never be
+// read as a measurement.
+static const char *g_reading = "NONE";
+
 static uint32_t redBuffer[100], irBuffer[100];
 static uint8_t bufCount = 0, newSinceCalc = 0;
 static bool haveFirstCalc = false;
@@ -159,6 +159,14 @@ static void pushSample(uint32_t red, uint32_t ir) {
 }
 #endif
 static float lastHr = 0, lastSpo2 = 0, lastTemp = 0;
+static unsigned long lastTempAtMs = 0;   // when the temperature sensor last answered
+
+// Is the last temperature still fresh enough to publish? A reading older than
+// TEMP_HOLD_MS is dropped so the website shows "no reading" rather than a
+// number that looks current.
+static bool tempHeld() {
+  return lastTemp > 10.0 && (millis() - lastTempAtMs) < TEMP_HOLD_MS;
+}
 
 bool sensorsBegin() {
 #if TEST_MODE_NO_SENSORS
@@ -167,13 +175,8 @@ bool sensorsBegin() {
   Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL);
   hasPox = pox.begin(Wire, I2C_SPEED_STANDARD);
   if (hasPox) pox.setup(0x1F, 4, 2, 100, 411, 4096);  // do NOT raise brightness (saturates)
-#if USE_DS18B20
-  dsTemp.begin();
-  dsTemp.setResolution(11);
-  hasDs = (dsTemp.getDeviceCount() > 0);
-#endif
   hasMcp = mcp9808Begin();
-  return hasPox && (hasMcp || hasDs);
+  return hasPox && hasMcp;
 #endif
 }
 
@@ -194,29 +197,24 @@ void sensorsPump() {   // call EVERY loop: drains MAX FIFO into the Maxim window
 Vitals sensorsRead() {
   Vitals v{lastHr, lastSpo2, lastTemp, false, false};
   g_simulated = false;
+  g_reading = "NONE";
 #if TEST_MODE_NO_SENSORS
   v = {72.0, 98.0, 36.6, true, true};
+  g_reading = "SIMULATED";
   return v;
 #endif
 #if TEST_CRITICAL
   v = {130.0, 90.0, 39.0, true, true};
   lastHr = v.hr; lastSpo2 = v.spo2; lastTemp = v.tempC;
+  g_reading = "SIMULATED";
   return v;
 #endif
 #if !TEST_MODE_NO_SENSORS
-#if USE_DS18B20
-  if (hasDs) {
-    dsTemp.requestTemperatures();
-    float t = dsTemp.getTempCByIndex(0);
-    if (!isnan(t) && t > 10.0 && t < 50.0 && t != 85.0) { lastTemp = t + TEMP_OFFSET_C; v.tempC = lastTemp; v.tempValid = true; }
-    else if (lastTemp > 10.0) { v.tempC = lastTemp; v.tempValid = true; }
-  }
-#endif
   if (hasMcp) {
     float t = mcp9808ReadC();
-    if (!isnan(t) && t > 10.0 && t < 50.0) { lastTemp = t + TEMP_OFFSET_C; v.tempC = lastTemp; v.tempValid = true; }
-    else if (lastTemp > 10.0) { v.tempC = lastTemp; v.tempValid = true; }
-  } else if (lastTemp > 10.0) { v.tempC = lastTemp; v.tempValid = true; }
+    if (!isnan(t) && t > 10.0 && t < 50.0) { lastTemp = t + TEMP_OFFSET_C; lastTempAtMs = millis(); v.tempC = lastTemp; v.tempValid = true; }
+    else if (tempHeld()) { v.tempC = lastTemp; v.tempValid = true; }
+  } else if (tempHeld()) { v.tempC = lastTemp; v.tempValid = true; }
 
   // ---- Heart rate and SpO2 from the MAX30102 (Maxim algorithm, 100 samples) ----
   // A reading is accepted only when the algorithm reports it as valid. When
@@ -255,21 +253,27 @@ Vitals sensorsRead() {
     if (lastSpo2 > 99.0f) lastSpo2 = 99.0f;
     v.hr = lastHr; v.spo2 = lastSpo2; v.hrValid = true;
     g_simulated = true;
+    g_reading = "SIMULATED";
   }
 #endif
-  // Simulated temperature, used only when no temperature sensor answers.
-  // With an MCP9808 fitted the live reading above is used and this block
-  // is skipped, so the display can never show a simulated body temperature
-  // as if it were measured.
+  // ---- Temperature ----
+  // There is no made-up body temperature here. If the MCP9808 is fitted and
+  // answers, its reading is published. If it is absent, the device reports
+  // no temperature at all and the website says so. A number that was
+  // invented on the device would be read on the website as a measurement,
+  // and a person would be told a temperature nobody took.
   if (!hasMcp) {
-    static bool tempFakeInit = false;
-    if (!tempFakeInit) { lastTemp = TEMP_PLACEHOLDER_C; tempFakeInit = true; }
-    lastTemp += (float)random(-1, 2) / 10.0f;  // -0.1..+0.1 per 2 s sample
-    if (lastTemp < 36.3f) lastTemp = 36.3f;
-    if (lastTemp > 37.0f) lastTemp = 37.0f;
-    v.tempC = lastTemp; v.tempValid = true;
-    g_simulated = true;
+    v.tempValid = false;
+    v.tempC = 0.0;
   }
+
+  // What the published numbers are, for the website to show. This is a
+  // separate word from g_simulated: g_simulated drives the word on the
+  // device's own screen and keeps its old meaning, while this one tells
+  // the website whether the numbers it is about to display were measured.
+  if (v.hrValid && v.tempValid) g_reading = "MEASURED";
+  else if (v.hrValid || v.tempValid) g_reading = "PARTIAL";
+  else g_reading = "NONE";
   return v;
 #endif
 }
@@ -623,8 +627,8 @@ void displayShowFull(const Vitals &v, StatusLevel st, const char *clockStr, bool
 
 // ======================= CLOUD (Wi-Fi + Firebase) =======================
 #if USE_CLOUD
-struct CloudSnap { int hr; int spo2; float temp; char rtc[24]; bool fall; bool sms; };
-static CloudSnap csnap = {0, 0, 0, "", false, false};
+struct CloudSnap { int hr; int spo2; float temp; char rtc[24]; bool fall; bool sms; char reading[12]; };
+static CloudSnap csnap = {0, 0, 0, "", false, false, "NONE"};
 static volatile bool cHas = false, cOnline = false;
 static portMUX_TYPE cMux = portMUX_INITIALIZER_UNLOCKED;
 struct NtpRtc { bool have; int y, mo, d, h, mi, s; };  // NTP->RTC handoff (loop owns I2C)
@@ -640,15 +644,17 @@ void cloudPush(const Vitals &v, const char *rtcText, bool fall, bool sms) {
   portENTER_CRITICAL(&cMux);
   csnap.hr = hr;
   csnap.spo2 = sp;
-  // Never send 0 for temp: 0 reads as "no data" on the website and overwrites
-  // any website-side placeholder every 2 s. Send last known, else placeholder.
+  // Never send 0 for temp as a placeholder. 0 means "no reading" and the
+  // website says exactly that. A made-up temperature would be read as a
+  // measurement, which is worse than an empty field.
   if (v.tempValid) csnap.temp = v.tempC;
-  else if (lastTemp > 10.0) csnap.temp = lastTemp;
-  else csnap.temp = TEMP_PLACEHOLDER_C;
+  else csnap.temp = 0.0;
   strncpy(csnap.rtc, rtcText ? rtcText : "", sizeof(csnap.rtc) - 1);
   csnap.rtc[sizeof(csnap.rtc) - 1] = 0;
   csnap.fall = fall;
   csnap.sms = sms;
+  strncpy(csnap.reading, g_reading, sizeof(csnap.reading) - 1);
+  csnap.reading[sizeof(csnap.reading) - 1] = 0;
   cHas = true;
   portEXIT_CRITICAL(&cMux);
 }
@@ -706,11 +712,12 @@ static void cloudTask(void *) {
 
       snprintf(payload, sizeof(payload),
                "{\"heart_rate\":%d,\"spo2\":%d,\"temperature\":%.1f,"
-               "\"rtc\":\"%s\",\"status\":\"%s\",\"gsm\":\"%s\","
+               "\"rtc\":\"%s\",\"status\":\"%s\",\"gsm\":\"%s\",\"reading\":\"%s\","
                "\"updated\":{\".sv\":\"timestamp\"}}",
                s.hr, s.spo2, s.temp, s.rtc,
                s.fall ? "FALL DETECTED" : "OKAY",
-               s.sms ? "MESSAGE SENT" : "ACTIVE");
+               s.sms ? "MESSAGE SENT" : "ACTIVE",
+               s.reading);
 
       bool ok = false;
       String url = String("https://") + FB_HOST + "/PROTECT/sensors.json";

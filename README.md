@@ -29,7 +29,7 @@ firmware/protect_core/      multi-file build, TFT variant (TFT is parked)
 firmware/protect_serial/    multi-file build, Serial-only variant
 firmware/protect_iot/       offline SoftAP fallback (no internet needed)
 firmware/drill_sms/         alarm drill sandbox (simulated critical vitals)
-firmware/live_sms/          live SMS sandbox (real MAX + DS18B20)
+firmware/live_sms/          live SMS sandbox (real MAX + MCP9808)
 firmware/serial_check/      raw wiring QA
 firmware/test_*/            one folder per sensor (MAX, DHT11, DS18B20, DS3231, MPU6050, GSM, TFT, maxonly)
 final_protect/PROTECT/      single-file all-in-one build (the one flashed on the rig)
@@ -37,6 +37,13 @@ api/ + relay/               Vercel relay (9 endpoints + _lib) and its tests
 web/index.html              the fleet website (no secrets in the file)
 docs/                       wiring, TFT, calibration, cost, fleet, flow, session log
 ```
+
+**Temperature sensor:** the MCP9808 (I2C 0x18) is the only temperature sensor
+in the firmware. The DS18B20 probe, its `PIN_DS18B20`, the `USE_DS18B20` flag
+and the OneWire and DallasTemperature libraries are gone from every sketch —
+which also means no sketch can drive GPIO4, the SOS button's pin, as a
+temperature probe any more. `firmware/test_ds18b20/` is kept only as a
+per-sensor bench sketch.
 
 **Local secrets:** every sketch reads its Wi-Fi password and the caregiver
 numbers from a `secrets.h` in its own folder. That file is **gitignored** and
@@ -49,7 +56,7 @@ git. Copy the template to `secrets.h` and fill it in.
 | Part | Role | State |
 |---|---|---|
 | MAX30102 (0x57) | HR + SpO2, Maxim 100-sample/4 s | **sensor is dead** → HR/SpO2 are placeholder drift values |
-| DS18B20 | body temp probe | **malfunctioning, now unplugged** (GPIO4 was taken by the SOS button) → static temp placeholder; MCP9808 chosen as the replacement (§68) |
+| MCP9808 (0x18) | body temperature | **the only temperature sensor in the firmware** (the DS18B20 path is removed from every sketch). Not yet fitted → the unit reports *no reading* for temperature rather than an invented one |
 | DS3231 (0x68) | RTC | present; the clock is NTP-synced (PHT) and the RTC is set from it |
 | MPU6050 (0x69) | fall detection (>2 g spike + stillness) | working |
 | SIM900A | SMS to up to 3 caregivers | working, proven end-to-end ×2 |
@@ -82,10 +89,27 @@ TFT_eSPI + Adafruit GFX (TFT variant only), Mobizt Firebase ESP Client (legacy).
 ## Tests
 
 ```bash
-npm test        # 143 assertions: relay 47 / accounts 49 / website DOM 47
+npm test        # 203 assertions: relay 81 / accounts 49 / website DOM 73
 ```
 
 The database is mocked in the tests — no test touches the live database.
+
+## The website
+
+`web/index.html` is the whole fleet console: one file, no build step, no
+dependencies. Two rules hold it together, and both are enforced by tests:
+
+- **A number appears only if a sensor produced it.** A missing reading is
+  shown as "No reading", never as a plausible substitute. The firmware
+  publishes a `reading` word (`MEASURED` / `PARTIAL` / `SIMULATED` / `NONE`)
+  so the site can tell a measurement from a demonstration.
+- **The alert bands live in one place**, `api/_lib/thresholds.js`, which is
+  a transcription of the firmware's own constants. The relay serves them to
+  a signed-in operator and the browser keeps no copy, so the screen and the
+  device can never grade the same reading differently.
+
+The bands are the prototype's research thresholds, not clinical limits, and
+the site says so on the Bands page.
 
 ## Before any real deployment (must be closed)
 
@@ -99,9 +123,10 @@ The database is mocked in the tests — no test touches the live database.
 3. **Only 3 commits exist.** The whole fleet phase (`api/`, `relay/`, the new
    `web/index.html`, `docs/FLEET_MULTI_SITE.md`) is uncommitted.
 4. **The firmware pins do not match the rig** — the rig is buzzer 27 + button
-   4 (DS18B20 unplugged), the repo builds say buzzer 13 + button 34 and still
-   read the DS18B20 on GPIO4. The physical SOS button does not work until the
-   sketch is re-pinned (§66).
+   4, the repo builds say buzzer 13 + button 34. The physical SOS button does
+   not work until the sketch is re-pinned (§66). (The DS18B20 read is gone
+   from every sketch now, so nothing drives GPIO4 as a probe any more — but
+   the button pin is still 14 in the firmware, not 4.)
 5. HR/SpO2 and temperature are placeholder values until the sensors are fixed.
 
 ## Evidence for the paper

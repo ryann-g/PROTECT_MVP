@@ -1,7 +1,7 @@
 // config.h — P.R.O.T.E.C.T. Final all-5 + TFT: single place to tune pins + thresholds.
 // Frozen solder map (2026-10-14): I2C 21/22 (MAX 0x57, RTC 0x68, MPU 0x69 AD0->3V3),
-// DS18B20 DATA 4 (proven isolation pin, 4.7k pull-up to 3V3), SPI 23/19/18,
-// TFT CS15/DC2/RST33 (RST moved off 4: DS18B20 owns 4), SD CS5,
+// MCP9808 on I2C 0x18 (temperature), SPI 23/19/18,
+// TFT CS15/DC2/RST33, SD CS5,
 // LEDs 25/26/27, buzzer 13,
 // button 34 (input-only), GSM 16/17 + own 5V 2A + 1000uF, TFT 5V ext, buck 5V->VIN.
 // Edit ONLY this file to adapt to your exact ESP32 / TFT boards.
@@ -24,11 +24,24 @@
 #define USE_MPU6050 1
 #define USE_GSM 1
 
-// ---- Sensors: MAX30102 + DS18B20 + DS3231-mini (+ MPU6050 + SIM800L when enabled) ----
+// ---- Sensors: MAX30102 + MCP9808 + DS3231-mini (+ MPU6050 + SIM800L when enabled) ----
 static const uint8_t PIN_I2C_SDA = 21;
 static const uint8_t PIN_I2C_SCL = 22;
-static const int PIN_DS18B20 = 4;  // OneWire DATA (isolation-proven pin), 4.7k pull-up to 3V3
-// Expected I2C addresses: MAX30102 0x57, DS3231-mini 0x68, MPU6050 0x69 (AD0->3V3)
+// Expected I2C addresses: MAX30102 0x57, MCP9808 0x18, DS3231-mini 0x68,
+// MPU6050 0x69 (AD0->3V3)
+// ---- Temperature sensor: MCP9808 (I2C 0x18) ----
+// The MCP9808 replaced the DS18B20 waterproof probe: +/-0.25 C typical over
+// the body range, 1/16 degC resolution, 30 ms conversion, and no blocking
+// read. The probe is unplugged, its pin (GPIO4) now belongs to the SOS
+// button, and the OneWire presence pulse on that pin was a source of false
+// SOS interrupts.
+#define MCP9808_ADDR  0x18  // A0/A1/A2 to GND
+#define MCP9808_REG_TEMP_H 0x05
+#define MCP9808_REG_TEMP_L 0x06
+#define MCP9808_REG_TEMP_ID 0x07
+#define MCP9808_REG_CONTROL 0x01
+#define MCP9808_ID_MICROCHIP 0x0C
+
 
 // ---- SPI (TFT + SD share MOSI/MISO/SCK) ----
 static const int PIN_SPI_MOSI = 23;
@@ -36,7 +49,7 @@ static const int PIN_SPI_MISO = 19;
 static const int PIN_SPI_SCK  = 18;
 static const int PIN_TFT_CS   = 15;
 static const int PIN_TFT_DC   = 2;
-static const int PIN_TFT_RST  = 33;  // moved off 4 (DS18B20 owns GPIO4 now)
+static const int PIN_TFT_RST  = 33;
 // XPT2046 3.5" module: touch parked (no lib). Wire T_CS->3V3 so touch never
 // drives MISO; T_CLK/T_DIN/T_DO/T_IRQ unconnected. See docs/TFT_SETUP.md.
 static const int PIN_SD_CS    = 5;
@@ -87,7 +100,7 @@ static const uint8_t CAREGIVER_COUNT = 3;
 static const unsigned long GSM_SMS_COOLDOWN_MS = 60000;  // max 1 broadcast/min
 
 // ---- Timing ----
-static const unsigned long SAMPLE_MS = 2000;  // 2s: DS18B20 750ms conversion + Maxim window
+static const unsigned long SAMPLE_MS = 2000;  // 2s: Maxim window cadence
 static const unsigned long LOG_MS    = 5000;  // SD log interval
 static const unsigned long DEBOUNCE_MS = 200;
 

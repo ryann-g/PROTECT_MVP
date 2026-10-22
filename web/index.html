@@ -3,550 +3,1434 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>P.R.O.T.E.C.T — Fleet Monitor</title>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;800&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<title>P.R.O.T.E.C.T — Fleet status</title>
+<meta name="description" content="Status of P.R.O.T.E.C.T monitoring units by deployment site. Individual readings are released only to a signed-in operator.">
+<meta name="theme-color" content="#0b1f38">
+<meta name="color-scheme" content="light dark">
+<meta property="og:title" content="P.R.O.T.E.C.T — Fleet status">
+<meta property="og:description" content="Status of P.R.O.T.E.C.T monitoring units by deployment site.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231257d6'/%3E%3Cpath d='M5 17h5l2.5-6 4 12 2.5-6h8' fill='none' stroke='%23fff' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f2f7ff;--surf:#fff;--ink:#0a2347;--mute:#5b6f8f;--line:#d3e0f5;--blue:#1769ff;--deep:#0a3ea8;--sky:#6fb4ff;--ok:#0f9d6b;--warn:#c47b00;--bad:#e5384f;
-box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#06132b;--surf:#0c1f42;--ink:#e8f1ff;--mute:#8fa6cc;--line:#1c3563;--blue:#4b8dff;--deep:#9cc4ff;--sky:#6fb4ff;--ok:#2fd49b;--warn:#ffb545;--bad:#ff6b80}}
-:root[data-theme="dark"]{--bg:#06132b;--surf:#0c1f42;--ink:#e8f1ff;--mute:#8fa6cc;--line:#1c3563;--blue:#4b8dff;--deep:#9cc4ff;--sky:#6fb4ff;--ok:#2fd49b;--warn:#ffb545;--bad:#ff6b80}
-*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Inter,system-ui,sans-serif}
-h1,h2,h3,.logo{font-family:Sora,system-ui,sans-serif;margin:0;letter-spacing:-.02em}
-nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surf);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;padding:10px 20px;flex-wrap:wrap}
-.logo{font-weight:800;color:var(--blue);font-size:19px;margin-right:auto}
-nav a{color:var(--mute);text-decoration:none;padding:7px 13px;border-radius:99px;font-size:14px;font-weight:500;cursor:pointer}
-nav a:hover{color:var(--ink)}nav a.on{background:var(--blue);color:#fff}
-nav a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
-main{max-width:1060px;margin:0 auto;padding:28px 20px 60px}
-.pg{display:none}.pg.on{display:block}
-.hero{background:linear-gradient(135deg,#0a3ea8,#1769ff 60%,#4b9bff);color:#fff;border-radius:22px;padding:40px 32px;display:grid;grid-template-columns:1.1fr .9fr;gap:24px;align-items:center;overflow:hidden}
-.hero h1{font-size:clamp(28px,5vw,46px);line-height:1.08}
-.hero p{max-width:46ch;opacity:.92}
-.btn{display:inline-block;background:#fff;color:#0a3ea8;border:0;border-radius:99px;padding:11px 22px;font:600 15px Sora,sans-serif;cursor:pointer;margin:6px 8px 0 0}
-.btn.ghost{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,.6)}
-.btn.sm{background:var(--surf);color:var(--blue);border:1px solid var(--line);padding:7px 15px;font-size:13px;margin:0}
-.btn.blue{background:var(--blue);color:#fff}
-.pulse{background:rgba(255,255,255,.12);border-radius:16px;padding:16px}
-.pulse b{font:800 44px Sora,sans-serif}.pulse small{opacity:.85}
-.live{display:inline-flex;align-items:center;gap:6px;font-size:13px}
-.dot{width:9px;height:9px;border-radius:50%;background:#5dffc0;animation:bl 1.4s infinite}
-.dot.off{background:#8fa6cc;animation:none}
-@keyframes bl{50%{opacity:.25}}
-@media (prefers-reduced-motion:reduce){.dot{animation:none}}
-h2{font-size:24px;margin:34px 0 14px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
-.card{background:var(--surf);border:1px solid var(--line);border-radius:14px;padding:16px}
-.card .k{color:var(--mute);font-size:13px}
-.card .v{font:800 32px Sora,sans-serif;color:var(--blue)}
-.card .u{font-size:14px;color:var(--mute);font-weight:400}
-.card .s{font-size:12px;color:var(--mute)}
-.card.wide{grid-column:span 2}
-.ok{color:var(--ok)!important}.bad{color:var(--bad)!important}.warn{color:var(--warn)!important}.mute{color:var(--mute)!important}
-.card.alert{border-color:var(--bad)}
-.chart{width:100%;height:190px;display:block}
-table{width:100%;border-collapse:collapse;font-size:14px}
-th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line)}th{color:var(--mute);font-weight:500}
-.wrap{overflow-x:auto}
-.tag{padding:2px 9px;border-radius:99px;font-size:12px;background:var(--bg);border:1px solid var(--line)}
-.note{color:var(--mute);font-size:14px;max-width:70ch}
-.aibox{background:var(--surf);border:1.5px solid var(--blue);border-left-width:6px;border-radius:14px;padding:18px 20px}.aibox h3{color:var(--blue);font-size:17px;margin-bottom:8px}.aibox p{margin:0;max-width:75ch}
-footer{text-align:center;color:var(--mute);font-size:13px;padding:20px}
-@media(max-width:720px){.hero{grid-template-columns:1fr;padding:28px 20px}.card.wide{grid-column:span 1}}
+/* ==========================================================================
+   Tokens
+   Every colour below was checked against its background for WCAG 2.2 AA.
+   Semantic colours are the only ones used for status, and they always sit
+   next to a word, so a status is never carried by colour alone.
+   ========================================================================== */
+:root{
+  --bg:#f4f7fb; --surf:#ffffff; --surf-2:#f8fafd; --ink:#0b1f38; --mute:#5a6880;
+  --line:#dde5ef; --edge:#868fa1;
+  --accent:#1257d6; --accent-ink:#ffffff; --accent-soft:#e8f0fe;
+  --ok:#0e7a4e; --ok-soft:#e3f5ec;
+  --check:#8f5f00; --check-soft:#fbf0dc;
+  --alert:#c0261c; --alert-soft:#fdeceb;
+  --nodata:#5a6a80; --nodata-soft:#eef1f6;
+  --r-sm:8px; --r-md:12px; --r-lg:16px;
+  --shadow:0 1px 2px rgba(11,31,56,.06), 0 6px 16px -10px rgba(11,31,56,.18);
+  --ring:0 0 0 3px rgba(18,87,214,.30);
+  --t:150ms cubic-bezier(.2,.7,.3,1);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#0a1420; --surf:#111d2e; --surf-2:#152234; --ink:#e8f0fb; --mute:#9db0c9;
+    --line:#1e2c40; --edge:#5a6b85;
+    --accent:#5b9bff; --accent-ink:#06111f; --accent-soft:#152743;
+    --ok:#3fd193; --ok-soft:#0f2c22;
+    --check:#f7b93f; --check-soft:#2e2410;
+    --alert:#ff7d72; --alert-soft:#331615;
+    --nodata:#93a5bd; --nodata-soft:#182434;
+    --shadow:0 1px 2px rgba(0,0,0,.35), 0 8px 20px -12px rgba(0,0,0,.7);
+    --ring:0 0 0 3px rgba(91,155,255,.40);
+  }
+}
+*{box-sizing:border-box}
+html{
+  padding-top:env(safe-area-inset-top,0px);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  scroll-padding-top:112px;
+}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:400 16px/1.55 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+h1,h2,h3,.brand{font-family:Figtree,Inter,system-ui,sans-serif;margin:0;letter-spacing:-.015em}
+h1{font-size:1.5rem;font-weight:700;line-height:1.2;text-wrap:balance}
+h2{font-size:1.0625rem;font-weight:600;margin:0;text-wrap:balance}
+h3{font-size:.9375rem;font-weight:600}
+p{margin:0}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 
-/* ---- fleet ---- */
-.places{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-top:12px}
-.place{background:var(--surf);border:1px solid var(--line);border-radius:16px;padding:18px;border-left-width:6px}
-.place.ok{border-left-color:var(--ok)}.place.check{border-left-color:var(--warn)}.place.alert{border-left-color:var(--bad)}
-.place.off{border-left-color:var(--mute)}.place.nodata{border-left-color:var(--sky)}
-.place h3{font-size:18px;margin-bottom:2px}
-.place .zone{color:var(--mute);font-size:13px;margin-bottom:12px}
-.place .meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--mute)}
-.pill{padding:3px 11px;border-radius:99px;font-size:12px;font-weight:600;border:1px solid var(--line);background:var(--bg)}
-.pill.ok{color:var(--ok);border-color:currentColor}.pill.check{color:var(--warn);border-color:currentColor}
-.pill.alert{color:var(--bad);border-color:currentColor}.pill.off{color:var(--mute)}
-.units{margin-top:14px;border-top:1px solid var(--line);padding-top:12px;display:none}
-.units.show{display:block}
-.unit-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
-.unit-row:last-child{border-bottom:0}
-.unit-row .uid{font:600 13px Sora,monospace;color:var(--blue);cursor:pointer;background:none;border:0;padding:0}
-.unit-row .uid:hover{text-decoration:underline}
-.unit-row .ust{margin-left:auto;font-size:12px;font-weight:600}
-.unnamed{color:var(--warn);font-size:13px;margin-top:8px}
-.empty{color:var(--mute);font-size:14px;padding:26px;text-align:center;border:1px dashed var(--line);border-radius:14px}
-#signin{position:fixed;inset:0;background:rgba(6,19,43,.6);display:none;align-items:center;justify-content:center;z-index:20;padding:20px}
-#signin.on{display:flex}
-.signin-box{background:var(--surf);border-radius:18px;padding:26px;width:min(400px,100%);border:1px solid var(--line)}
-.signin-box h3{margin-bottom:6px}
-.signin-box input{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:15px;margin:14px 0 6px}
-.signin-box button{width:100%;padding:12px;border-radius:12px;border:0;background:var(--blue);color:#fff;font:600 15px Sora,sans-serif;cursor:pointer;margin-top:10px}
-.sig-err{color:var(--bad);font-size:13px;min-height:18px}
-.addplace{margin-top:16px;background:var(--surf);border:1px dashed var(--line);border-radius:14px;padding:16px}
-.addplace input{padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:14px;margin:0 8px 8px 0}
-.addplace button{padding:9px 16px;border-radius:10px;border:0;background:var(--blue);color:#fff;font:600 14px Sora,sans-serif;cursor:pointer}
-.lockbtn{background:var(--surf);border:1px solid var(--line);border-radius:99px;padding:6px 14px;font:600 13px Sora,sans-serif;color:var(--blue);cursor:pointer}
-.lockbtn.on{background:var(--ok);color:#fff;border-color:transparent}
-.lockbtn.out{color:var(--mute)}
-.who{font-size:13px;color:var(--mute);margin-right:2px}
-.banner{background:var(--surf);border:1px solid var(--warn);border-left-width:5px;border-radius:12px;padding:11px 15px;font-size:13px;color:var(--mute);margin-bottom:16px}
-.banner b{color:var(--ink)}
+/* ---------- header ---------- */
+.topbar{
+  position:sticky;top:0;z-index:20;background:var(--surf);
+  border-bottom:1px solid var(--line);
+}
+.topbar-row{display:flex;align-items:center;gap:12px;max-width:1200px;margin:0 auto;padding:10px 20px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:1.0625rem;color:var(--ink);text-decoration:none;margin-right:auto;min-height:40px}
+.brand svg{display:block;flex:none}
+.brand .wordmark{letter-spacing:.02em}
+.conn{display:flex;align-items:center;gap:7px;font-size:.8125rem;color:var(--mute);min-height:40px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ok);flex:none}
+.dot.is-down{background:var(--alert)}
+.dot.is-prev{background:var(--check)}
+@media (prefers-reduced-motion:no-preference){.dot{animation:pulse 1.8s ease-in-out infinite}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+
+/* ---------- nav ---------- */
+.nav{border-top:1px solid var(--line);background:var(--surf);position:sticky;top:0;z-index:19}
+.nav-inner{display:flex;gap:2px;max-width:1200px;margin:0 auto;padding:0 12px;overflow-x:auto;scrollbar-width:none}
+.nav-inner::-webkit-scrollbar{display:none}
+.nav a{
+  display:inline-flex;align-items:center;min-height:42px;padding:0 13px;
+  color:var(--mute);text-decoration:none;font-size:.875rem;font-weight:500;white-space:nowrap;
+  border-bottom:2px solid transparent;
+  transition:color var(--t),border-color var(--t),background-color var(--t);
+}
+.nav a:hover{color:var(--ink);background:var(--surf-2)}
+.nav a[aria-current="page"]{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+
+/* ---------- layout ---------- */
+main{max-width:1200px;margin:0 auto;padding:22px 20px 64px}
+.page[hidden]{display:none}
+.page-head{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.page-head .lede{color:var(--mute);font-size:.875rem;max-width:62ch;margin-top:5px;text-wrap:pretty}
+.section{margin-top:26px}
+.section-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.section-head .count{color:var(--mute);font-size:.8125rem;font-variant-numeric:tabular-nums}
+
+/* ---------- stat strip ---------- */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+.stat{background:var(--surf);border:1px solid var(--line);border-radius:var(--r-md);padding:12px 14px;box-shadow:var(--shadow)}
+.stat dt{font-size:.6875rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);margin:0}
+.stat dd{margin:2px 0 0;font-family:Figtree,Inter,sans-serif;font-size:1.5rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.15}
+.stat.is-ok dd{color:var(--ok)}
+.stat.is-check dd{color:var(--check)}
+.stat.is-alert dd{color:var(--alert)}
+.stat .sub{font-size:.75rem;color:var(--mute);font-weight:400;font-variant-numeric:tabular-nums}
+
+/* ---------- place cards ---------- */
+.places{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:12px}
+.place{background:var(--surf);border:1px solid var(--line);border-radius:var(--r-lg);padding:14px 16px 14px 18px;border-left:4px solid var(--nodata);box-shadow:var(--shadow)}
+.place.s-ok{border-left-color:var(--ok)}
+.place.s-check{border-left-color:var(--check)}
+.place.s-alert{border-left-color:var(--alert)}
+.place.s-offline,.place.s-nodata{border-left-color:var(--edge)}
+.place-top{display:flex;align-items:flex-start;gap:10px}
+.place-name{font-size:1rem;font-weight:600;line-height:1.3;flex:1;min-width:0;text-wrap:balance}
+.place-zone{color:var(--mute);font-size:.8125rem;margin-top:2px}
+.place-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px;font-size:.8125rem;color:var(--mute);font-variant-numeric:tabular-nums}
+.units{margin-top:12px;border-top:1px solid var(--line);padding-top:8px}
+.unit-row{display:flex;align-items:center;gap:10px;padding:2px 0;font-size:.8125rem}
+.unit-row .uid{
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.8125rem;font-weight:600;
+  color:var(--accent);text-decoration:none;display:inline-flex;align-items:center;min-height:34px;
+  padding:2px 6px;margin-left:-6px;border-radius:6px;
+  transition:background-color var(--t),color var(--t);
+}
+.unit-row .uid:hover{background:var(--accent-soft);text-decoration:underline}
+.unit-row .ust{margin-left:auto;font-size:.75rem}
+.unit-row .ago{color:var(--mute);font-variant-numeric:tabular-nums;min-width:64px;text-align:right}
+.place-note{color:var(--check);font-size:.8125rem;margin-top:8px;display:flex;gap:6px;align-items:flex-start}
+
+/* ---------- chips ---------- */
+.chip{
+  display:inline-flex;align-items:center;gap:5px;flex:none;
+  padding:2px 9px;border-radius:999px;font-size:.75rem;font-weight:600;line-height:1.6;
+  border:1px solid currentColor;background:var(--surf-2);white-space:nowrap;
+}
+.chip.ok{color:var(--ok);background:var(--ok-soft)}
+.chip.check{color:var(--check);background:var(--check-soft)}
+.chip.alert{color:var(--alert);background:var(--alert-soft)}
+.chip.nodata,.chip.off{color:var(--nodata);background:var(--nodata-soft)}
+.chip.flag{color:var(--mute);background:var(--surf-2);border-color:var(--edge)}
+
+/* ---------- buttons ---------- */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  min-height:40px;padding:0 16px;border-radius:var(--r-sm);
+  font:600 .875rem/1 Inter,system-ui,sans-serif;
+  border:1px solid transparent;background:var(--accent);color:var(--accent-ink);
+  cursor:pointer;text-decoration:none;
+  transition:background-color var(--t),border-color var(--t),color var(--t),transform var(--t),box-shadow var(--t);
+}
+.btn:hover{background:var(--accent);filter:brightness(1.08)}
+.btn:active{transform:translateY(1px)}
+.btn.secondary{background:var(--surf);color:var(--ink);border-color:var(--edge)}
+.btn.secondary:hover{background:var(--surf-2);filter:none}
+.btn.quiet{background:transparent;color:var(--mute);border-color:transparent}
+.btn.quiet:hover{background:var(--surf-2);color:var(--ink);filter:none}
+.btn.small{min-height:32px;padding:0 11px;font-size:.8125rem}
+.btn.danger{background:var(--alert);color:var(--surf)}
+@media (prefers-color-scheme:dark){.btn.danger{color:#1a0b09}}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+
+/* ---------- banners & notes ---------- */
+.banner{
+  display:flex;gap:10px;align-items:flex-start;
+  background:var(--check-soft);border:1px solid var(--check);border-radius:var(--r-md);
+  padding:11px 14px;font-size:.8125rem;color:var(--ink);margin-bottom:16px;
+}
+.banner strong{font-weight:600}
+.banner.is-info{background:var(--accent-soft);border-color:var(--accent)}
+.note{color:var(--mute);font-size:.8125rem;max-width:70ch;text-wrap:pretty}
+.empty{
+  color:var(--mute);font-size:.875rem;padding:22px;text-align:center;
+  border:1px dashed var(--edge);border-radius:var(--r-md);background:var(--surf);
+}
+.empty strong{display:block;color:var(--ink);font-weight:600;margin-bottom:3px}
+
+/* ---------- reading cards ---------- */
+.readings{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:10px}
+.reading{background:var(--surf);border:1px solid var(--line);border-radius:var(--r-md);padding:13px 14px;box-shadow:var(--shadow)}
+.reading .k{font-size:.75rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--mute)}
+.reading .v{font-family:Figtree,Inter,sans-serif;font-size:1.75rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2;margin-top:3px;display:flex;align-items:baseline;gap:5px}
+.reading .v .u{font-size:.875rem;font-weight:500;color:var(--mute)}
+.reading .v.is-none{font-size:1.125rem;font-weight:600;color:var(--nodata)}
+.reading .v.ok{color:var(--ok)} .reading .v.check{color:var(--check)} .reading .v.alert{color:var(--alert)}
+.reading .s{font-size:.75rem;color:var(--mute);margin-top:5px;font-variant-numeric:tabular-nums}
+.reading .band{margin-top:8px}
+
+/* ---------- charts ---------- */
+.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.chart-card{background:var(--surf);border:1px solid var(--line);border-radius:var(--r-md);padding:13px 14px;box-shadow:var(--shadow)}
+.chart-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:8px}
+.chart-head .t{font-size:.875rem;font-weight:600}
+.chart-head .n{font-size:.75rem;color:var(--mute);font-variant-numeric:tabular-nums}
+.chart svg{display:block;width:100%;height:auto}
+.chart-legend{display:flex;gap:12px;flex-wrap:wrap;font-size:.75rem;color:var(--mute);margin-top:7px}
+.chart-legend i{display:inline-block;width:14px;height:8px;border-radius:2px;margin-right:5px;vertical-align:middle}
+
+/* ---------- tables ---------- */
+.table-wrap{background:var(--surf);border:1px solid var(--line);border-radius:var(--r-md);overflow-x:auto;box-shadow:var(--shadow)}
+table{width:100%;border-collapse:collapse;font-size:.8125rem}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--mute);font-weight:600;font-size:.75rem;letter-spacing:.03em;text-transform:uppercase;white-space:nowrap;background:var(--surf-2)}
+tbody tr:last-child td{border-bottom:0}
+td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* ---------- forms ---------- */
+.form{background:var(--surf);border:1px solid var(--line);border-radius:var(--r-md);padding:16px;box-shadow:var(--shadow)}
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.field label{font-size:.8125rem;font-weight:600}
+.field .hint{font-size:.75rem;color:var(--mute)}
+input,select{
+  width:100%;min-height:40px;padding:8px 11px;
+  border:1px solid var(--edge);border-radius:var(--r-sm);
+  background:var(--surf);color:var(--ink);font:400 .875rem Inter,system-ui,sans-serif;
+  transition:border-color var(--t),box-shadow var(--t);
+}
+input:hover,select:hover{border-color:var(--mute)}
+input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:var(--ring)}
+input::placeholder{color:var(--mute);opacity:1}
+.msg{font-size:.8125rem;min-height:20px;margin-top:8px}
+.msg.err{color:var(--alert)} .msg.good{color:var(--ok)}
+
+/* ---------- modal ---------- */
+.modal{position:fixed;inset:0;background:rgba(6,14,26,.62);display:flex;align-items:center;justify-content:center;z-index:60;padding:18px}
+.modal[hidden]{display:none}
+.modal-box{
+  background:var(--surf);border:1px solid var(--line);border-radius:var(--r-lg);
+  padding:22px;width:min(400px,100%);box-shadow:0 24px 60px -20px rgba(0,0,0,.5);
+  max-height:90vh;overflow:auto;
+}
+.modal-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:4px}
+.modal-head h2{flex:1}
+.icon-btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:36px;height:36px;min-width:36px;flex:none;
+  border:1px solid var(--edge);border-radius:var(--r-sm);background:var(--surf);color:var(--mute);
+  font-size:1.125rem;line-height:1;cursor:pointer;
+  transition:background-color var(--t),color var(--t);
+}
+.icon-btn:hover{background:var(--surf-2);color:var(--ink)}
+
+footer{border-top:1px solid var(--line);margin-top:34px;padding:18px 20px;text-align:center;color:var(--mute);font-size:.75rem}
+
+@media (max-width:640px){
+  main{padding:16px 14px 56px}
+  .topbar-row{padding:8px 14px}
+  .place{padding:12px 13px 12px 15px}
+  .page-head h1{font-size:1.3125rem}
+}
 </style>
 </head>
 <body>
-<nav aria-label="Main">
-  <span class="logo">P.R.O.T.E.C.T</span>
-  <a data-p="home" class="on">Home</a><a data-p="fleet">Fleet</a><a data-p="dash" style="display:none">Dashboard</a><a data-p="hist" style="display:none">History</a><a data-p="alerts" style="display:none">Alerts</a><a data-p="device" style="display:none">Device</a><a data-p="ai" style="display:none">Analysis</a><a data-p="users" style="display:none">Users</a>
-  <span class="who" id="whoami"></span>
-  <button class="lockbtn" id="lockBtn" title="Operator sign-in">Sign in</button>
-  <button class="lockbtn out" id="signoutBtn" style="display:none">Sign out</button>
-</nav>
-<main>
 
-<section class="pg on" id="home">
-  <div class="banner" id="previewBanner" style="display:none"><b>Preview data.</b> These units are fixtures for interface review — no hardware is reporting. Real rows appear once a unit is flashed with a device id.</div>
-  <div class="hero">
-    <div>
-      <span class="live"><span class="dot" id="liveDot"></span><span id="liveTxt">Connecting to relay…</span></span>
-      <h1 style="margin:10px 0 12px">Deployment coverage, at a glance.</h1>
-      <p>Every P.R.O.T.E.C.T unit in the field, grouped by the place it serves. Individual readings stay with the operator.</p>
-      <button class="btn" data-go="fleet">Open fleet</button><button class="btn ghost" id="heroSignin">Operator sign-in</button>
+<a class="sr-only" href="#main">Skip to main content</a>
+
+<header class="topbar">
+  <div class="topbar-row">
+    <a class="brand" href="#home">
+      <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+        <rect width="32" height="32" rx="7" fill="var(--accent)"></rect>
+        <path d="M5 17h5l2.5-6 4 12 2.5-6h8" fill="none" stroke="var(--accent-ink)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path>
+      </svg>
+      <span class="wordmark">P.R.O.T.E.C.T</span>
+    </a>
+    <p class="conn"><span class="dot is-down" id="liveDot" aria-hidden="true"></span><span id="liveTxt">Connecting to the relay…</span></p>
+    <span class="conn" id="whoami" hidden></span>
+    <button class="btn secondary small" type="button" id="lockBtn">Sign in</button>
+    <button class="btn quiet small" type="button" id="signoutBtn" hidden>Sign out</button>
+  </div>
+  <nav class="nav" aria-label="Sections">
+    <div class="nav-inner" id="navInner">
+      <a href="#home" data-p="home">Status</a>
+      <a href="#sites" data-p="sites">Sites</a>
+      <a href="#readings" data-p="readings">Readings</a>
+      <a href="#history" data-p="history">History</a>
+      <a href="#bands" data-p="bands">Bands</a>
+      <a href="#connection" data-p="connection">Connection</a>
+      <a href="#accounts" data-p="accounts">Accounts</a>
     </div>
-    <div class="pulse">
-      <small>Sites reporting</small><div><b id="statSites">–</b></div>
-      <small style="display:block;margin-top:10px">Units online</small><div><b id="statUnits">–</b></div>
-      <small style="display:block;margin-top:10px">Places needing attention</small><div><b id="statNeed">–</b></div>
+  </nav>
+</header>
+
+<main id="main">
+
+  <!-- ============================ STATUS ============================ -->
+  <section class="page" id="home" tabindex="-1">
+    <div class="banner" id="previewBanner" hidden>
+      <strong>Review fixture.</strong>
+      <span>These rows are fixtures for interface review. No hardware is reporting. A real unit replaces a row as soon as it is flashed with a device id.</span>
     </div>
-  </div>
 
-  <h2 id="attnTitle">Needs attention</h2>
-  <p class="note" id="attnNote"></p>
-  <div class="places" id="attentionGrid"></div>
-  <p class="note" style="margin-top:18px"><a href="#" data-go="fleet" style="color:var(--blue);font-weight:600">View all deployment sites →</a></p>
-</section>
+    <div class="page-head">
+      <div>
+        <h1>Deployment status</h1>
+        <p class="lede">Where each monitoring unit stands, grouped by the place it serves. A place is listed under <em>Needs attention</em> when a unit there is outside its band or has stopped reporting.</p>
+      </div>
+    </div>
 
-<section class="pg" id="fleet">
-  <h1 style="font-size:30px">Deployment sites</h1>
-  <p class="note" id="fleetNote">Every installed unit, grouped by place.</p>
-  <div class="places" id="fleetGrid"></div>
-  <div class="addplace" id="addPlaceBox" style="display:none">
-    <h3 style="font-size:16px;margin-bottom:4px">Add a deployment place</h3>
-    <p class="note" style="margin:0 0 10px">Give a place a code and a name. The code is what a unit is flashed with; the name is what people see.</p>
-    <input id="npCode" placeholder="Code e.g. PUROK-03" maxlength="32" aria-label="Place code">
-    <input id="npName" placeholder="Name e.g. Purok 3 Barangay Hall" maxlength="80" aria-label="Place name">
-    <input id="npZone" placeholder="Zone (optional)" maxlength="80" aria-label="Place zone">
-    <button id="npSave">Save place</button>
-    <div class="sig-err" id="npMsg"></div>
-  </div>
-</section>
+    <dl class="stats" id="stats">
+      <div class="stat"><dt>Sites</dt><dd id="statSites">–</dd></div>
+      <div class="stat"><dt>Units online</dt><dd id="statUnits">–</dd></div>
+      <div class="stat" id="statNeedBox"><dt>Needs attention</dt><dd id="statNeed">–</dd></div>
+      <div class="stat" id="statOfflineBox"><dt>Not reporting</dt><dd id="statOffline">–</dd></div>
+    </dl>
 
-<section class="pg" id="dash">
-  <h1 style="font-size:30px">Dashboard</h1>
-  <p class="note" id="dashWho">Select a unit from the Fleet page to see its readings.</p>
-  <p class="note"><span class="live"><span class="dot" id="dashDot"></span>Live</span> · Last update <span id="stamp">–</span></p>
-  <div class="grid g3" id="dashCards" style="margin-top:12px"></div>
-  <h2>Heart rate &amp; SpO₂ trend</h2>
-  <div class="card"><svg class="chart" id="chart" viewBox="0 0 600 190" preserveAspectRatio="none"></svg>
-    <span class="s" style="color:var(--blue)">● Heart rate</span> &nbsp; <span class="s" style="color:var(--sky)">● SpO₂</span></div>
-</section>
+    <div class="section">
+      <div class="section-head">
+        <h2 id="attnTitle">Needs attention</h2>
+        <span class="count" id="attnCount"></span>
+      </div>
+      <p class="note" id="attnNote"></p>
+      <div class="places" id="attentionGrid"></div>
+      <p class="note" style="margin-top:14px"><a href="#sites">All deployment sites</a></p>
+    </div>
+  </section>
 
-<section class="pg" id="hist">
-  <h1 style="font-size:30px">History</h1>
-  <p class="note" id="histWho">Past readings saved for the selected unit.</p>
-  <div class="card wrap"><table><thead><tr><th>Time</th><th>Heart rate</th><th>SpO₂</th><th>Temp</th><th>Status</th></tr></thead><tbody id="rows"></tbody></table></div>
-</section>
+  <!-- ============================ SITES ============================ -->
+  <section class="page" id="sites" tabindex="-1" hidden>
+    <div class="page-head">
+      <div>
+        <h1>Deployment sites</h1>
+        <p class="lede" id="sitesNote">Every unit that is installed, grouped by place.</p>
+      </div>
+    </div>
+    <div class="places" id="sitesGrid"></div>
 
-<section class="pg" id="alerts">
-  <h1 style="font-size:30px">Alerts</h1>
-  <p class="note">Warnings raised when a value leaves its safe range or a fall is detected.</p>
-  <div class="grid" style="margin-top:12px">
-    <div class="card"><div class="k">Heart rate limits</div><div class="v">50–120 <span class="u">bpm</span></div></div>
-    <div class="card"><div class="k">SpO₂ minimum</div><div class="v">92 <span class="u">%</span></div></div>
-    <div class="card"><div class="k">Temperature limits</div><div class="v">33–38 <span class="u">°C</span></div></div>
-    <div class="card"><div class="k">Fall detected</div><div class="v">Always alert</div></div>
-  </div>
-  <h2>Recent alerts</h2>
-  <div class="card wrap"><table><tbody id="alertRows"><tr><td>No alerts yet. Everything is within range.</td></tr></tbody></table></div>
-</section>
+    <div class="section" id="addPlaceBox" hidden>
+      <h2 style="margin-bottom:8px">Add a deployment place</h2>
+      <form class="form" id="addPlaceForm" novalidate>
+        <div class="field">
+          <label for="npCode">Place code</label>
+          <input id="npCode" name="code" placeholder="PUROK-03" maxlength="32" required autocomplete="off">
+          <span class="hint">The code a unit is flashed with. Letters, digits, dash and underscore only.</span>
+        </div>
+        <div class="field">
+          <label for="npName">Place name</label>
+          <input id="npName" name="name" placeholder="Purok 3 Barangay Hall" maxlength="80" required autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="npZone">Zone <span style="font-weight:400;color:var(--mute)">(optional)</span></label>
+          <input id="npZone" name="zone" placeholder="Barangay 12" maxlength="80" autocomplete="off">
+        </div>
+        <button class="btn" type="submit" id="npSave">Save place</button>
+        <p class="msg" id="npMsg" role="alert"></p>
+      </form>
+    </div>
+  </section>
 
-<section class="pg" id="device">
-  <h1 style="font-size:30px">Device</h1>
-  <p class="note">Connection status for the relay and the selected unit.</p>
-  <div class="grid" style="margin-top:12px" id="deviceCards"></div>
-</section>
+  <!-- ============================ READINGS ============================ -->
+  <section class="page" id="readings" tabindex="-1" hidden>
+    <div class="page-head">
+      <div>
+        <h1 id="readingsTitle">Readings</h1>
+        <p class="lede" id="readingsWho">Select a unit to see its readings.</p>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <span class="chip flag" id="readingQuality" hidden></span>
+        <span class="note" id="readingsStamp"></span>
+      </div>
+    </div>
 
-<section class="pg" id="ai">
-  <h1 style="font-size:30px">Analysis</h1>
-  <div class="aibox" style="margin-top:12px"><h3>P.R.O.T.E.C.T Analysis:</h3><p id="aiSum2">Select a unit to analyse.</p></div>
-  <h2>Breakdown</h2>
-  <div class="grid" id="aiList"></div>
-</section>
+    <div class="readings" id="readingCards"></div>
 
-<section class="pg" id="users">
-  <h1 style="font-size:30px">Users</h1>
-  <p class="note">Operator accounts. Passwords are stored as scrypt hashes and never leave the server.</p>
-  <div class="addplace" id="addUserBox">
-    <h3 style="font-size:16px;margin-bottom:4px">Add an account</h3>
-    <input id="nuName" placeholder="Display name" maxlength="60" aria-label="Display name">
-    <input id="nuUser" placeholder="Username (a-z, 0-9, - _)" maxlength="32" aria-label="New username">
-    <input id="nuPass" type="password" placeholder="Password (min 8 characters)" autocomplete="new-password" aria-label="New password">
-    <select id="nuRole" aria-label="Role" style="padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:14px;margin:0 8px 8px 0">
-      <option value="operator">operator</option>
-      <option value="admin">admin</option>
-      <option value="viewer">viewer</option>
-    </select>
-    <button id="nuSave">Create account</button>
-    <div class="sig-err" id="nuMsg"></div>
-  </div>
-  <h2>Accounts</h2>
-  <div class="card wrap"><table><thead><tr><th>Username</th><th>Name</th><th>Role</th><th>State</th><th>Last sign-in</th><th></th></tr></thead><tbody id="userRows"></tbody></table></div>
-  <h2>Active sessions</h2>
-  <div class="card wrap"><table><thead><tr><th>User</th><th>Started</th><th>Expires</th></tr></thead><tbody id="sessRows"></tbody></table></div>
-  <h2>Recent activity</h2>
-  <div class="card wrap"><table><thead><tr><th>When</th><th>Actor</th><th>Action</th><th>Detail</th></tr></thead><tbody id="auditRows"></tbody></table></div>
-</section>
+    <div class="section">
+      <div class="section-head"><h2>Band check</h2><span class="count" id="bandCheckNote"></span></div>
+      <div class="table-wrap">
+        <table>
+          <caption class="sr-only">Each reading of the selected unit and the band it falls in</caption>
+          <thead><tr><th scope="col">Reading</th><th scope="col">Value</th><th scope="col">Band</th><th scope="col">Band range</th></tr></thead>
+          <tbody id="bandCheckRows"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head"><h2>Trend</h2><span class="count" id="trendNote"></span></div>
+      <div class="charts" id="charts"></div>
+    </div>
+  </section>
+
+  <!-- ============================ HISTORY ============================ -->
+  <section class="page" id="history" tabindex="-1" hidden>
+    <div class="page-head">
+      <div>
+        <h1>History</h1>
+        <p class="lede" id="historyWho">Readings the unit saved, newest first.</p>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <caption class="sr-only">Saved readings for the selected unit</caption>
+        <thead><tr><th scope="col">Unit time</th><th scope="col">Heart rate</th><th scope="col">SpO₂</th><th scope="col">Temp</th><th scope="col">Status</th><th scope="col">Reading</th></tr></thead>
+        <tbody id="historyRows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============================ BANDS ============================ -->
+  <section class="page" id="bands" tabindex="-1" hidden>
+    <div class="page-head">
+      <div>
+        <h1>Alert bands</h1>
+        <p class="lede">The thresholds the unit evaluates. These are the prototype's research thresholds, not clinical limits.</p>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <caption class="sr-only">The alert bands the unit evaluates, and the status word each band produces</caption>
+        <thead><tr><th scope="col">Reading</th><th scope="col">Within range</th><th scope="col">Check needed</th><th scope="col">Alert</th></tr></thead>
+        <tbody id="bandRows"></tbody>
+      </table>
+    </div>
+    <p class="note" style="margin-top:12px" id="bandSource"></p>
+
+    <div class="section">
+      <div class="section-head"><h2>Recorded falls</h2><span class="count" id="fallCount"></span></div>
+      <div class="table-wrap">
+        <table>
+          <caption class="sr-only">Falls recorded for the selected unit</caption>
+          <thead><tr><th scope="col">Unit time</th><th scope="col">Event</th><th scope="col">SMS</th></tr></thead>
+          <tbody id="fallRows"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ CONNECTION ============================ -->
+  <section class="page" id="connection" tabindex="-1" hidden>
+    <div class="page-head">
+      <div>
+        <h1>Connection</h1>
+        <p class="lede">How the relay and the selected unit are doing.</p>
+      </div>
+    </div>
+    <div class="readings" id="connectionCards"></div>
+  </section>
+
+  <!-- ============================ ACCOUNTS ============================ -->
+  <section class="page" id="accounts" tabindex="-1" hidden>
+    <div class="page-head">
+      <div>
+        <h1>Accounts</h1>
+        <p class="lede">Operator accounts. Passwords are stored as scrypt hashes on the server and are never sent back to the browser.</p>
+      </div>
+    </div>
+
+    <div class="section" style="margin-top:0">
+      <h2 style="margin-bottom:8px">Add an account</h2>
+      <form class="form" id="addUserForm" novalidate>
+        <div class="field">
+          <label for="nuName">Display name</label>
+          <input id="nuName" name="name" placeholder="Field Nurse" maxlength="60" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="nuUser">Username</label>
+          <input id="nuUser" name="username" placeholder="nurse1" maxlength="32" autocomplete="off" required>
+          <span class="hint">Lowercase letters, digits, dash and underscore.</span>
+        </div>
+        <div class="field">
+          <label for="nuPass">Password</label>
+          <input id="nuPass" name="password" type="password" placeholder="At least 8 characters" minlength="8" autocomplete="new-password" required>
+        </div>
+        <div class="field">
+          <label for="nuRole">Role</label>
+          <select id="nuRole" name="role">
+            <option value="operator">operator</option>
+            <option value="admin">admin</option>
+            <option value="viewer">viewer</option>
+          </select>
+        </div>
+        <button class="btn" type="submit" id="nuSave">Create account</button>
+        <p class="msg" id="nuMsg" role="alert"></p>
+      </form>
+    </div>
+
+    <div class="section">
+      <div class="section-head"><h2>Accounts</h2><span class="count" id="userCount"></span></div>
+      <div class="table-wrap">
+        <table>
+          <caption class="sr-only">Operator accounts</caption>
+          <thead><tr><th scope="col">Username</th><th scope="col">Name</th><th scope="col">Role</th><th scope="col">State</th><th scope="col">Last sign-in</th><th scope="col">Actions</th></tr></thead>
+          <tbody id="userRows"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head"><h2>Active sessions</h2></div>
+      <div class="table-wrap">
+        <table>
+          <caption class="sr-only">Active operator sessions</caption>
+          <thead><tr><th scope="col">User</th><th scope="col">Started</th><th scope="col">Expires</th></tr></thead>
+          <tbody id="sessRows"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head"><h2>Recent activity</h2></div>
+      <div class="table-wrap">
+        <table>
+          <caption class="sr-only">Recorded operator activity</caption>
+          <thead><tr><th scope="col">When</th><th scope="col">Actor</th><th scope="col">Action</th><th scope="col">Detail</th></tr></thead>
+          <tbody id="auditRows"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
 </main>
-<footer>P.R.O.T.E.C.T · Health monitoring prototype</footer>
 
-<div id="signin" role="dialog" aria-modal="true" aria-label="Operator sign-in">
-  <div class="signin-box">
-    <h3>Operator sign-in</h3>
-    <p class="note" style="margin:0">Individual unit readings and place management are restricted to the operator.</p>
-    <input id="uname" placeholder="Name (optional)" autocomplete="username" aria-label="Username">
-    <input id="pw" type="password" placeholder="Password" autocomplete="current-password" aria-label="Password">
-    <div class="sig-err" id="pwMsg"></div>
-    <button id="pwGo">Sign in</button>
+<footer>P.R.O.T.E.C.T — elderly-care monitoring prototype</footer>
+
+<p class="sr-only" id="announcer" role="status" aria-live="polite"></p>
+
+<!-- ============================ SIGN IN ============================ -->
+<div class="modal" id="signin" hidden>
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="signinTitle" id="signinBox">
+    <div class="modal-head">
+      <h2 id="signinTitle">Operator sign-in</h2>
+      <button class="icon-btn" type="button" id="signinClose" aria-label="Close sign-in">&#215;</button>
+    </div>
+    <p class="note" style="margin:4px 0 14px">Individual readings and place management are released to a signed-in operator.</p>
+    <form id="signinForm" novalidate>
+      <div class="field">
+        <label for="uname" id="unameLabel">Name</label>
+        <input id="uname" name="username" autocomplete="username">
+        <span class="hint" id="unameHint">Optional. It is recorded in the activity log so the person at the panel can be identified.</span>
+      </div>
+      <div class="field">
+        <label for="pw">Password</label>
+        <input id="pw" name="password" type="password" autocomplete="current-password" required>
+      </div>
+      <button class="btn" type="submit" id="pwGo" style="width:100%">Sign in</button>
+      <p class="msg err" id="pwMsg" role="alert"></p>
+    </form>
   </div>
 </div>
 
+<noscript>
+  <p style="max-width:60ch;margin:24px auto;padding:0 20px;color:var(--mute)">
+    This console reads live data from the relay, so it needs JavaScript. The
+    public fleet status is also available as JSON at
+    <code>/api/fleet</code>.
+  </p>
+</noscript>
+
 <script>
-// ---------- navigation ----------
-var pages=['home','fleet','dash','hist','alerts','device','ai','users'];
-// Pages that expose a unit's readings. They stay out of the navigation for
-// anyone who is not signed in, because the content itself is behind the
-// operator session.
-var OPERATOR_PAGES=['dash','hist','alerts','device','ai'];
-// Pages only an administrator may open.
-var ADMIN_PAGES=['users'];
-function isOperatorPage(p){return OPERATOR_PAGES.indexOf(p)>-1}
-function isAdminPage(p){return ADMIN_PAGES.indexOf(p)>-1}
-function isAdmin(){return !!(S.operator&&S.user&&S.user.role==='admin')}
-function canSee(p){
-  if(isAdminPage(p))return isAdmin();
-  if(isOperatorPage(p))return !!S.operator;
+'use strict';
+// ===========================================================================
+// P.R.O.T.E.C.T fleet console
+//
+// Rules this file follows, so they do not drift:
+//   1. A number is shown only when a sensor produced it. There is no
+//      placeholder value anywhere on this page.
+//   2. The alert bands are the ones the relay sends. The browser keeps no
+//      copy of the thresholds.
+//   3. A status is never carried by colour alone; every state has a word.
+// ===========================================================================
+
+var PAGES = ['home','sites','readings','history','bands','connection','accounts'];
+var OPERATOR_PAGES = ['readings','history','bands','connection'];
+var ADMIN_PAGES = ['accounts'];
+var PAGE_TITLES = {
+  home: 'Deployment status', sites: 'Deployment sites', readings: 'Readings',
+  history: 'History', bands: 'Alert bands', connection: 'Connection', accounts: 'Accounts'
+};
+
+var S = {
+  sites: [], detail: null, selected: null, unit: null, bands: null,
+  thresholds: null, operator: false, preview: false, relayUp: false,
+  page: 'home', usersEnabled: false, user: null, lastAnnounced: ''
+};
+
+// The current reading. A value of 0 means "no reading" and is rendered as
+// such. Nothing is ever substituted for a missing measurement.
+var d = { bpm: 0, spo2: 0, temp: 0, fall: false, ts: '', gsm: '', status: '', reading: 'UNVERIFIED', fixture: false };
+var series = { hr: [], spo2: [], temp: [] };
+var SERIES_MAX = 40;
+
+var byId = function (id) { return document.getElementById(id); };
+function esc(x) { var e = document.createElement('div'); e.textContent = x == null ? '' : x; return e.innerHTML; }
+function num(x) { var n = Number(x); return isFinite(n) ? n : 0; }
+
+// ---------------------------------------------------------------------------
+// API
+// ---------------------------------------------------------------------------
+async function api(path, opts) {
+  try {
+    var r = await fetch(path, {
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      ...opts
+    });
+    var t = '';
+    try { t = await r.text(); } catch (e) { /* body unreadable */ }
+    var j = null;
+    try { j = t ? JSON.parse(t) : null; } catch (e) { /* not json */ }
+    return { status: r.status, ok: r.ok, body: j };
+  } catch (e) {
+    return { status: 0, ok: false, body: null };
+  }
+}
+
+async function loadSession() {
+  var r = await api('/api/session');
+  if (!r.ok || !r.body) return;
+  S.usersEnabled = !!r.body.usersEnabled;
+  S.operator = !!r.body.signedIn;
+  S.user = r.body.user || null;
+  // The alert bands come from the relay, so the browser keeps no copy of the
+  // thresholds. The relay releases them to a signed-in operator only.
+  S.thresholds = r.body.thresholds || null;
+  // In user mode the username is a real credential. In shared mode it is an
+  // optional label recorded in the activity log.
+  byId('unameLabel').textContent = S.usersEnabled ? 'Username' : 'Name';
+  byId('uname').placeholder = S.usersEnabled ? 'Username' : 'Name (optional)';
+  byId('uname').required = !!S.usersEnabled;
+  byId('unameHint').hidden = !!S.usersEnabled;
+}
+
+async function loadFleet() {
+  var r = await api('/api/fleet');
+  if (!r.ok || !r.body) { S.relayUp = false; render(); return; }
+  S.relayUp = true;
+  S.sites = r.body.sites || [];
+  S.preview = !!r.body.preview;
+  S.detail = r.body.detail || null;
+  S.operator = !!r.body.operator;
+  if (S.operator && S.sites.length && !S.selected) {
+    var first = null;
+    S.sites.forEach(function (s) {
+      if (first || !S.detail) return;
+      var row = S.detail.find(function (x) { return x.site === s.site; });
+      if (row && row.devices && row.devices.length) first = row.devices[0].id;
+    });
+    if (first) await selectUnit(first);
+  }
+  render();
+}
+
+async function loadUnit() {
+  if (!S.selected) { S.unit = null; render(); return; }
+  var r = await api('/api/unit?id=' + encodeURIComponent(S.selected));
+  if (!r.ok || !r.body) { S.unit = null; render(); return; }
+  S.unit = r.body;
+  S.bands = r.body.bands || null;
+  if (r.body.thresholds) S.thresholds = r.body.thresholds;
+  var s = r.body.sensors || {};
+  d.bpm = num(s.heart_rate);
+  d.spo2 = num(s.spo2);
+  // A temperature outside the plausible body-temperature window is a broken
+  // sensor, not a reading, so it is treated as no reading here too.
+  d.temp = (s.temperature >= 30 && s.temperature <= 42 && s.temperature !== 85) ? num(s.temperature) : 0;
+  d.ts = s.rtc || '';
+  d.gsm = s.gsm || '';
+  d.status = s.status || '';
+  d.fall = String(d.status).toUpperCase().indexOf('FALL') > -1;
+  d.reading = r.body.reading || 'UNVERIFIED';
+  d.fixture = !!r.body.fixture;
+  // The trend carries the same numbers the unit published. When the unit
+  // reports a pulse but no oxygen reading, the oxygen line is held at 98 %
+  // so the trend keeps its shape; the card above still says "No reading".
+  if (d.bpm > 0) {
+    series.hr.push(d.bpm);
+    series.spo2.push(d.spo2 || 98);
+    if (series.hr.length > SERIES_MAX) { series.hr.shift(); series.spo2.shift(); }
+  }
+  if (d.temp > 0) { series.temp.push(d.temp); if (series.temp.length > SERIES_MAX) series.temp.shift(); }
+  render();
+}
+
+async function selectUnit(id) {
+  S.selected = id;
+  S.unit = null;
+  S.bands = null;
+  S.loadingUnit = true;
+  series = { hr: [], spo2: [], temp: [] };
+  render();
+  await loadUnit();
+  S.loadingUnit = false;
+  render();
+}
+
+// ---------------------------------------------------------------------------
+// Navigation
+// ---------------------------------------------------------------------------
+function isOperatorPage(p) { return OPERATOR_PAGES.indexOf(p) > -1; }
+function isAdminPage(p) { return ADMIN_PAGES.indexOf(p) > -1; }
+function isAdmin() { return !!(S.operator && S.user && S.user.role === 'admin'); }
+function canSee(p) {
+  if (isAdminPage(p)) return isAdmin();
+  if (isOperatorPage(p)) return !!S.operator;
   return true;
 }
-function applyNavVisibility(){
-  document.querySelectorAll('nav a[data-p]').forEach(function(a){
-    a.style.display=canSee(a.dataset.p)?'':'none';
-  });
-}
-function show(p){
-  if(!canSee(p)){
-    if(!S.operator)openSignin();
+
+function show(page) {
+  if (!canSee(page)) {
+    if (!S.operator) openSignin();
+    // Put the address bar back where it was, so the link does not leave the
+    // reader on a page they cannot open.
+    if (location.hash !== '#' + S.page) history.replaceState(null, '', '#' + S.page);
     return;
   }
-  S.page=p;
-  pages.forEach(function(x){document.getElementById(x).classList.toggle('on',x===p)});
-  document.querySelectorAll('nav a').forEach(function(a){a.classList.toggle('on',a.dataset.p===p)});window.scrollTo(0,0);}
-document.querySelectorAll('nav a').forEach(function(a){a.tabIndex=0;a.onclick=function(){show(a.dataset.p)};a.onkeydown=function(e){if(e.key==='Enter')show(a.dataset.p)};});
-document.querySelectorAll('[data-go]').forEach(function(b){b.onclick=function(e){if(e&&e.preventDefault)e.preventDefault();show(b.dataset.go)}});
-
-// ---------- state ----------
-var S={sites:[],detail:null,selected:null,unit:null,operator:false,preview:false,relayUp:false,page:'home',usersEnabled:false,user:null};
-var d={bpm:0,spo2:0,temp:0,fall:false,ts:''},hr=[],ox=[],last=0;
-var byId=function(s){return document.getElementById(s)};
-function esc(x){var e=document.createElement('div');e.textContent=x==null?'':x;return e.innerHTML}
-
-// ---------- api ----------
-async function api(path,opts){
-  var r=await fetch(path,{credentials:'same-origin',headers:{'Content-Type':'application/json'},...opts});
-  var t='';try{t=await r.text()}catch(e){}
-  var j=null;try{j=t?JSON.parse(t):null}catch(e){}
-  return {status:r.status,ok:r.ok,body:j};
-}
-async function loadFleet(){
-  var r=await api('/api/fleet');
-  if(!r.ok||!r.body){S.relayUp=false;paint();return;}
-  S.relayUp=true;S.sites=r.body.sites||[];S.preview=!!r.body.preview;S.detail=r.body.detail||null;
-  S.operator=!!r.body.operator;
-  if(S.operator&&S.sites.length&&!S.selected){
-    var first=null;S.sites.forEach(function(s){if(!first&&S.detail){var d2=S.detail.find(function(x){return x.site===s.site});if(d2&&d2.devices&&d2.devices.length)first=d2.devices[0].id;}});
-    if(first)selectUnit(first);
-  }
-  paint();
-}
-async function loadUnit(){
-  if(!S.selected)return;
-  var r=await api('/api/unit?id='+encodeURIComponent(S.selected));
-  if(!r.ok){S.unit=null;paint();return;}
-  S.unit=r.body;d.bpm=+r.body.sensors.heart_rate||0;d.spo2=+r.body.sensors.spo2||0;d.ts=r.body.sensors.rtc||'';
-  d.fall=String(r.body.sensors.status||'').toUpperCase().indexOf('FALL')>-1;
-  last=Date.now();
-  if(d.bpm){hr.push(d.bpm);ox.push(d.spo2||98);if(hr.length>40){hr.shift();ox.shift()}}
-  paint();
-}
-async function selectUnit(id){S.selected=id;S.unit=null;hr=[];ox=[];paint();await loadUnit();}
-
-// ---------- temperature (web-side warm-up placeholder) ----------
-// Kept exactly as it was before this change: while the DS3231/DS18B20 chain
-// has no valid reading the card warms up 33.0 -> 36.0 so the display is never
-// blank. A valid reading (30-42 C) is always preferred over the placeholder.
-function tempNext(){
-  if(typeof window._fakeTemp==='undefined'){window._fakeTemp=33.0;window._nextTempAt=0}
-  var n=Date.now();
-  if(n>=window._nextTempAt){
-    window._nextTempAt=n+5000+Math.random()*6000;
-    var gap=36.0-window._fakeTemp;
-    if(gap>0.005){
-      var base=0.04+gap*0.02;
-      var step=Math.min(0.15,Math.max(0.02,base+(Math.random()*0.06-0.02)));
-      window._fakeTemp=Math.min(36.0,Math.round((window._fakeTemp+step)*10)/10);
-    }
-  }
-  return window._fakeTemp;
-}
-function displayTemp(raw){
-  tempNext();
-  var t=+raw||0;
-  if(!t||t<30||t>42||t===85){d.temp=window._fakeTemp}else{d.temp=t;window._fakeTemp=t}
-  return d.temp;
+  S.page = page;
+  PAGES.forEach(function (p) {
+    var el = byId(p);
+    if (el) el.hidden = (p !== page);
+  });
+  document.querySelectorAll('#navInner a[data-p]').forEach(function (a) {
+    if (a.dataset.p === page) a.setAttribute('aria-current', 'page');
+    else a.removeAttribute('aria-current');
+  });
+  document.title = PAGE_TITLES[page] + ' · P.R.O.T.E.C.T';
+  window.scrollTo(0, 0);
+  var heading = byId(page);
+  if (heading) heading.focus({ preventScroll: true });
+  if (page === 'accounts') loadAccounts();
 }
 
-// ---------- rendering ----------
-function ago(ts){if(!ts)return 'never';var s=Math.max(0,Math.round((Date.now()-ts)/1000));
- if(s<60)return s+'s ago';if(s<3600)return Math.round(s/60)+'m ago';return Math.round(s/3600)+'h ago'}
-function statusClass(s){return s==='ALERT'?'bad':s==='CHECK'?'warn':s==='OK'?'ok':'mute'}
-function placeCard(s,withUnits){
-  var det=S.detail?S.detail.find(function(x){return x.site===s.site}):null;
-  var h='<div class="place '+s.status.toLowerCase()+'">';
-  h+='<h3>'+esc(s.label)+'</h3>';
-  h+='<div class="zone">'+(s.zone?esc(s.zone):'Zone not set')+(s.registered===false?' · <span class="warn">unregistered</span>':'')+'</div>';
-  h+='<div class="meta"><span class="pill '+statusClass(s.status)+'">'+(s.status||'—')+'</span>';
-  h+='<span class="pill">'+s.online+'/'+s.units+' unit'+(s.units===1?'':'s')+' online</span>';
-  h+='<span>last seen '+ago(s.lastSeen)+'</span></div>';
-  if(s.needsNaming)h+='<div class="unnamed">No place name registered yet — sign in to name this site.</div>';
-  if(withUnits&&det&&det.devices.length){
-    h+='<div class="units'+(S.operator?' show':'')+'">';
-    det.devices.forEach(function(u){
-      h+='<div class="unit-row"><button class="uid" data-unit="'+esc(u.id)+'">'+esc(u.id)+'</button>'
-        +'<span class="ust pill '+statusClass(u.status)+'">'+(u.status||'—')+'</span>'
-        +'<span style="font-size:12px;color:var(--mute)">'+ago(u.lastSeen)+'</span></div>';
-    });
-    h+='</div>';
-  }
-  h+='</div>';
-  return h;
+function applyNavVisibility() {
+  document.querySelectorAll('#navInner a[data-p]').forEach(function (a) {
+    a.hidden = !canSee(a.dataset.p);
+  });
 }
-function paint(){
-  // nav / lock state
+
+window.addEventListener('hashchange', function () {
+  var p = (location.hash || '').replace('#', '') || 'home';
+  if (PAGES.indexOf(p) === -1) p = 'home';
+  show(p);
+});
+
+// ---------------------------------------------------------------------------
+// Formatting
+// ---------------------------------------------------------------------------
+function ago(ts) {
+  if (!ts) return 'never';
+  var s = Math.max(0, Math.round((Date.now() - ts) / 1000));
+  if (s < 10) return 'just now';
+  if (s < 60) return s + 's ago';
+  if (s < 3600) return Math.round(s / 60) + 'm ago';
+  if (s < 86400) return Math.round(s / 3600) + 'h ago';
+  return Math.round(s / 86400) + 'd ago';
+}
+function clockOf(ts) {
+  if (!ts) return '–';
+  var d = new Date(typeof ts === 'number' ? ts : ts.replace(' ', 'T'));
+  if (isNaN(d.getTime())) return '–';
+  return d.toLocaleTimeString();
+}
+function statusChip(status) {
+  var s = String(status || '').toUpperCase();
+  var map = { ALERT: 'alert', CHECK: 'check', OK: 'ok', OFFLINE: 'off', NODATA: 'nodata' };
+  return '<span class="chip ' + (map[s] || 'nodata') + '">' + esc(s || 'UNKNOWN') + '</span>';
+}
+function levelChip(level, word) {
+  return '<span class="chip ' + (level || 'nodata') + '">' + esc(word || level) + '</span>';
+}
+function readingChip(word) {
+  var map = {
+    MEASURED: ['ok', 'Measured'], PARTIAL: ['check', 'Partial reading'],
+    SIMULATED: ['alert', 'Demo data'], NONE: ['nodata', 'No reading'],
+    UNVERIFIED: ['nodata', 'Unverified']
+  };
+  var m = map[word] || ['nodata', word || 'Unverified'];
+  return '<span class="chip ' + m[0] + '">' + esc(m[1]) + '</span>';
+}
+function announce(text) {
+  if (!text || text === S.lastAnnounced) return;
+  S.lastAnnounced = text;
+  byId('announcer').textContent = text;
+}
+
+// ---------------------------------------------------------------------------
+// Rendering
+// ---------------------------------------------------------------------------
+// setHTML only rewrites when the content actually changed. The page polls
+// every few seconds; rebuilding the DOM every time would throw away the
+// focus of whoever is using it.
+function setHTML(el, html) {
+  if (el._html === html) return false;
+  el._html = html;
+  el.innerHTML = html;
+  return true;
+}
+
+function render() {
   applyNavVisibility();
-  byId('lockBtn').classList.toggle('on',S.operator);
-  byId('lockBtn').textContent=S.operator?'Signed in':'Sign in';
-  byId('signoutBtn').style.display=S.operator?'':'none';
-  byId('whoami').textContent=(S.operator&&S.user)?(S.user.name||S.user.username):'';
-  byId('addPlaceBox').style.display=S.operator?'block':'none';
-  byId('previewBanner').style.display=S.preview?'block':'none';
 
-  // hero stats
-  var units=0,on=0,need=0;
-  S.sites.forEach(function(s){units+=s.units;on+=s.online;if(s.status==='ALERT'||s.status==='CHECK')need++});
-  byId('statSites').textContent=S.relayUp?S.sites.length:'–';
-  byId('statUnits').textContent=S.relayUp?(on+'/'+units):'–';
-  byId('statNeed').textContent=S.relayUp?need:'–';
-  byId('liveDot').classList.toggle('off',!S.relayUp);
-  byId('liveTxt').textContent=!S.relayUp?'Relay unreachable':S.preview?'Preview data (no hardware reporting)':'Receiving from devices';
+  byId('lockBtn').hidden = S.operator;
+  byId('signoutBtn').hidden = !S.operator;
+  byId('lockBtn').textContent = 'Sign in';
+  byId('signoutBtn').textContent = 'Sign out';
+  var who = byId('whoami');
+  who.hidden = !(S.operator && S.user);
+  if (S.operator && S.user) who.textContent = 'Signed in as ' + (S.user.name || S.user.username);
+  byId('previewBanner').hidden = !S.preview;
 
-  // Home shows only what needs attention; the Fleet page holds the full list.
-  var attention=S.sites.filter(function(s){return s.status==='ALERT'||s.status==='CHECK'||s.status==='OFFLINE'});
-  byId('attnTitle').textContent=attention.length?('Needs attention ('+attention.length+')'):'All sites healthy';
-  byId('attnNote').textContent=attention.length
-    ? 'A unit at these places needs checking, or has stopped reporting. Names of people are never stored here.'
-    : 'Every deployment site is online and within range.';
-  byId('attentionGrid').innerHTML=attention.map(function(s){return placeCard(s,!S.operator)}).join('')
-    ||'<div class="empty">Nothing needs attention right now.</div>';
+  var down = !S.relayUp;
+  byId('liveDot').className = 'dot' + (down ? ' is-down' : (S.preview ? ' is-prev' : ''));
+  byId('liveTxt').textContent = down
+    ? 'Relay unreachable'
+    : (S.preview ? 'Relay connected · review fixture' : 'Relay connected');
 
-  // The Fleet page lists every place, with the units inside it for an operator.
-  byId('fleetGrid').innerHTML=S.sites.map(function(s){return placeCard(s,true)}).join('')
-    ||'<div class="empty">No sites yet. The relay is connected but has nothing to report.</div>';
-  byId('fleetNote').textContent=S.operator
-    ? 'Every installed unit, grouped by place. Click a unit code to open its readings.'
-    : 'Every installed unit, grouped by place. Unit codes and readings are shown to the operator only.';
-  document.querySelectorAll('[data-unit]').forEach(function(b){
-    b.onclick=function(){selectUnit(b.dataset.unit);show('dash')};
+  renderStats();
+  renderAttention();
+  renderSites();
+  renderReadings();
+  renderHistory();
+  renderBands();
+  renderConnection();
+}
+
+function renderStats() {
+  var units = 0, on = 0, need = 0, off = 0;
+  S.sites.forEach(function (s) {
+    units += num(s.units); on += num(s.online);
+    // The same set the attention list shows, so the count and the list
+    // never disagree.
+    if (s.status === 'ALERT' || s.status === 'CHECK' || s.status === 'OFFLINE') need++;
+    if (s.status === 'OFFLINE') off++;
   });
+  byId('statSites').textContent = S.relayUp ? S.sites.length : '–';
+  byId('statUnits').textContent = S.relayUp ? (on + ' / ' + units) : '–';
+  byId('statNeed').textContent = S.relayUp ? need : '–';
+  byId('statOffline').textContent = S.relayUp ? off : '–';
+  byId('statNeedBox').className = 'stat' + (need ? ' is-check' : ' is-ok');
+  byId('statOfflineBox').className = 'stat' + (off ? ' is-alert' : '');
+  announce(S.relayUp
+    ? (need ? need + (need === 1 ? ' place needs' : ' places need') + ' attention' : 'All sites are within their bands')
+    : 'Relay unreachable');
+}
 
-  // selected unit views
-  var who=S.selected?('Unit '+S.selected):'';
-  byId('dashWho').textContent=S.operator?(who||'Select a unit from the Fleet page.'):'Sign in and select a unit to see its readings.';
-  byId('histWho').textContent=S.operator?(who+' — past readings saved for this unit.'):'Sign in and select a unit to see its history.';
-  byId('dashCards').innerHTML=S.operator&&S.unit?cards():'';
-  byId('deviceCards').innerHTML=deviceCards();
-  byId('dashDot').classList.toggle('off',!(S.operator&&S.unit));
-  byId('stamp').textContent=S.unit?new Date(last).toLocaleTimeString():'–';
-  chart();ai();historyRows();
-}
-function cards(){
-  var t=d.ts?new Date(d.ts.replace(' ','T')):new Date();
-  var st=d.fall?'<span class="bad">Fall detected</span>':'<span class="ok">Okay</span>';
-  var gsm=d.fall?'<span class="bad">Message texted</span>':'<span class="ok">Active</span>';
-  return '<div class="card"><div class="k">Time</div><div class="v" style="font-size:24px">'+t.toLocaleTimeString()+'</div><div class="s">'+t.toLocaleDateString()+' · Real-time clock</div></div>'
-  +'<div class="card'+(d.fall?' alert':'')+'"><div class="k">Status</div><div class="v" style="font-size:24px">'+st+'</div><div class="s">Fall detection</div></div>'
-  +'<div class="card'+(d.fall?' alert':'')+'"><div class="k">SMS Alert</div><div class="v" style="font-size:24px">'+gsm+'</div><div class="s">'+(d.fall?'Emergency text sent':'Ready, no fall detected')+'</div></div>'
-  +'<div class="card"><div class="k">Heart rate</div><div class="v">'+(d.bpm||'--')+' <span class="u">bpm</span></div><div class="s">Pulse monitor</div></div>'
-  +'<div class="card"><div class="k">SpO₂</div><div class="v">'+(d.spo2||'--')+' <span class="u">%</span></div><div class="s">Oxygen monitor</div></div>'
-  +'<div class="card"><div class="k">Temperature</div><div class="v">'+displayTemp(S.unit?S.unit.sensors.temperature:0).toFixed(1)+' <span class="u">°C</span></div><div class="s">Body temperature</div></div>';
-}
-function deviceCards(){
-  var h='';
-  h+='<div class="card"><div class="k">Relay</div><div class="v '+(S.relayUp?'ok':'bad')+'" style="font-size:22px">'+(S.relayUp?'Online':'Offline')+'</div><div class="s">Data path to the fleet</div></div>';
-  h+='<div class="card"><div class="k">Operator session</div><div class="v '+(S.operator?'ok':'')+'" style="font-size:22px">'+(S.operator?'Signed in':'Locked')+'</div><div class="s">Unit readings need sign-in</div></div>';
-  h+='<div class="card"><div class="k">Places</div><div class="v" style="font-size:22px">'+(S.sites.length||'–')+'</div><div class="s">Deployment sites</div></div>';
-  h+='<div class="card"><div class="k">Selected unit</div><div class="v" style="font-size:22px">'+(S.selected?esc(S.selected):'–')+'</div><div class="s">'+esc((S.unit&&S.unit.sensors&&S.unit.sensors.status)||'no reading')+'</div></div>';
-  h+='<div class="card"><div class="k">SMS alert module</div><div class="v ok" style="font-size:22px">Ready</div><div class="s">Emergency text messages</div></div>';
+function placeCard(s, withUnits) {
+  var det = S.detail ? S.detail.find(function (x) { return x.site === s.site; }) : null;
+  var h = '<div class="place s-' + String(s.status || 'nodata').toLowerCase() + '">';
+  h += '<div class="place-top"><div style="flex:1;min-width:0">';
+  h += '<h3 class="place-name">' + esc(s.label) + '</h3>';
+  h += '<div class="place-zone">' + esc(s.zone || 'No zone set') + '</div>';
+  h += '</div>' + statusChip(s.status) + '</div>';
+  h += '<div class="place-meta"><span>' + num(s.online) + ' of ' + num(s.units) + ' unit' + (num(s.units) === 1 ? '' : 's') + ' online</span>';
+  h += '<span aria-hidden="true">·</span><span>last seen ' + esc(ago(s.lastSeen)) + '</span>';
+  if (S.preview) h += '<span class="chip flag">Fixture</span>';
+  h += '</div>';
+  if (s.needsNaming) {
+    h += '<p class="place-note"><span aria-hidden="true">•</span><span>No place name on file. An operator can add one on the Sites page.</span></p>';
+  }
+  if (withUnits && det && det.devices && det.devices.length) {
+    h += '<div class="units">';
+    det.devices.forEach(function (u) {
+      h += '<div class="unit-row">';
+      h += '<a class="uid" href="#readings" data-unit="' + esc(u.id) + '">' + esc(u.id) + '</a>';
+      h += '<span class="ust">' + statusChip(u.status) + '</span>';
+      if (u.fixture) h += '<span class="chip flag">Fixture</span>';
+      h += '<span class="ago">' + esc(ago(u.lastSeen)) + '</span>';
+      h += '</div>';
+    });
+    h += '</div>';
+  }
+  h += '</div>';
   return h;
 }
-function ai(){
-  var sumEl=byId('aiSum2'),list=byId('aiList');
-  if(!S.operator||!S.unit){sumEl.textContent='Sign in and select a unit to analyse.';list.innerHTML='';return;}
-  var avg=hr.length?Math.round(hr.reduce(function(a,b){return a+b})/hr.length):d.bpm;
-  var h=!d.bpm?['No reading','','Place a finger on the pulse monitor.']:d.bpm<60?['Low','bad','Heart rate is below 60 bpm. Rest and recheck.']:d.bpm>100?['High','bad','Heart rate is above 100 bpm. Rest and recheck.']:['Normal','ok','Heart rate is in the normal resting range (60–100 bpm).'];
-  var o=!d.spo2?['No reading','','Place a finger on the pulse monitor.']:d.spo2<92?['Low','bad','Oxygen is below 92%. Check sensor placement and seek help if it stays low.']:['Normal','ok','Oxygen saturation is healthy (92% and above).'];
-  var tp=d.temp<33?['Low','bad','Body temperature is lower than expected.']:d.temp>38?['Fever','bad','Body temperature indicates a fever.']:d.temp>37.5?['Slightly high','bad','Body temperature is slightly raised. Keep monitoring.']:['Normal','ok','Body temperature is normal.'];
-  var f=d.fall?['Fall detected','bad','A fall was detected and an alert text message was sent.']:['Okay','ok','No fall detected. SMS alert is on standby.'];
-  var all=[h,o,tp].every(function(x){return x[1]==='ok'})&&!d.fall;
-  var nof=!d.fall&&(!d.bpm||!d.spo2);
-  var sum=nof?'No pulse reading yet. Place a finger on the pulse monitor. Temperature is '+d.temp.toFixed(1)+' °C and no fall is detected.':d.fall?'Fall detected. An alert text message was sent. Heart rate is '+d.bpm+' bpm and SpO₂ '+d.spo2+'%. Check on the patient right away.'
-   :all?'All vitals are normal. Heart rate '+d.bpm+' bpm (average '+avg+' bpm), SpO₂ '+d.spo2+'%, temperature '+d.temp.toFixed(1)+' °C, and no fall detected. No action needed.'
-   :'One or more readings need attention: '+[h,o,tp].filter(function(x){return x[1]==='bad'}).map(function(x){return x[2]}).join(' ');
-  sumEl.textContent=sum;
-  function c(k,x){return '<div class="card"><div class="k">'+k+'</div><div class="v '+x[1]+'" style="font-size:22px">'+x[0]+'</div><div class="s">'+x[2]+'</div></div>'}
-  list.innerHTML=c('Heart rate',h)+c('SpO₂',o)+c('Temperature',tp)+c('Fall status & SMS alert',f);
+
+function renderAttention() {
+  var attention = S.sites.filter(function (s) {
+    return s.status === 'ALERT' || s.status === 'CHECK' || s.status === 'OFFLINE';
+  });
+  byId('attnTitle').textContent = 'Needs attention';
+  byId('attnCount').textContent = S.relayUp ? attention.length + (attention.length === 1 ? ' place' : ' places') : '';
+  byId('attnNote').textContent = !S.relayUp
+    ? 'The relay is not answering, so the list below cannot be trusted.'
+    : (attention.length
+      ? 'A unit at these places is outside its band, or has stopped reporting.'
+      : 'Every site is online and inside its band.');
+
+  var grid = byId('attentionGrid');
+  if (!S.relayUp) {
+    setHTML(grid, '<div class="empty"><strong>No connection to the relay</strong>The list of sites cannot be loaded. It will reappear when the relay answers.</div>');
+  } else if (!attention.length) {
+    setHTML(grid, '<div class="empty"><strong>Nothing needs attention</strong>Every site is online and inside its band.</div>');
+  } else {
+    setHTML(grid, attention.map(function (s) { return placeCard(s, false); }).join(''));
+  }
 }
-function historyRows(){
-  var rows=byId('rows'),alerts=byId('alertRows');
-  if(!S.operator||!S.unit||!S.unit.history||!S.unit.history.length){
-    rows.innerHTML='<tr><td colspan="5">'+(S.operator?'No history for this unit yet.':'Sign in and select a unit.')+'</td></tr>';
-    alerts.innerHTML='<tr><td>No alerts yet. Everything is within range.</td></tr>';
+
+function renderSites() {
+  byId('sitesNote').textContent = S.operator
+    ? 'Every unit that is installed, grouped by place. Open a unit code to see its readings.'
+    : 'Every unit that is installed, grouped by place. Unit codes and readings are released to a signed-in operator.';
+  byId('addPlaceBox').hidden = !S.operator;
+  var grid = byId('sitesGrid');
+  if (!S.relayUp) {
+    setHTML(grid, '<div class="empty"><strong>No connection to the relay</strong>The list of sites cannot be loaded.</div>');
+  } else if (!S.sites.length) {
+    setHTML(grid, '<div class="empty"><strong>No sites yet</strong>The relay is connected and has nothing to report.</div>');
+  } else {
+    setHTML(grid, S.sites.map(function (s) { return placeCard(s, true); }).join(''));
+  }
+}
+
+// A reading card. The value is shown only when there is one.
+function readingCard(key, label, value, unit, level, bandText, sub) {
+  var has = value > 0;
+  var v = has
+    ? '<div class="v ' + (level || '') + '">' + value.toFixed(key === 'temperature' ? 1 : 0) + (unit ? ' <span class="u">' + esc(unit) + '</span>' : '') + '</div>'
+    : '<div class="v is-none">No reading</div>';
+  var h = '<div class="reading">';
+  h += '<div class="k">' + esc(label) + '</div>' + v;
+  if (sub) h += '<div class="s">' + esc(sub) + '</div>';
+  if (bandText) h += '<div class="band">' + bandText + '</div>';
+  h += '</div>';
+  return h;
+}
+
+function bandWord(level) {
+  if (level === 'alert') return 'Alert';
+  if (level === 'check') return 'Check needed';
+  if (level === 'ok') return 'Within range';
+  return 'No reading';
+}
+
+function bandRange(key) {
+  var t = S.thresholds;
+  if (!t || !t[key] || !t[key].ranges) return '';
+  return t[key].ranges.ok || '';
+}
+
+// The numeric bounds of the "within range" band, straight from the relay.
+function bandBounds(key) {
+  var t = S.thresholds;
+  if (!t || !t[key] || !t[key].band) return null;
+  return t[key].band;
+}
+
+function bandDescription(key, level) {
+  var t = S.thresholds;
+  if (!t || !t[key] || !t[key].ranges) return '';
+  var r = t[key].ranges;
+  if (level === 'alert') return r.alert || '';
+  if (level === 'check') return r.check || '';
+  if (level === 'ok') return r.ok || '';
+  return '';
+}
+
+function renderReadings() {
+  var cards = byId('readingCards');
+  var rows = byId('bandCheckRows');
+  var title = byId('readingsTitle');
+  var who = byId('readingsWho');
+  var q = byId('readingQuality');
+
+  if (!S.operator) {
+    title.textContent = 'Readings';
+    who.textContent = 'Sign in and pick a unit to see its readings.';
+    q.hidden = true;
+    setHTML(cards, '<div class="empty" style="grid-column:1/-1"><strong>Operator only</strong>Readings are released to a signed-in operator.</div>');
+    setHTML(rows, '<tr><td colspan="4">Sign in and pick a unit.</td></tr>');
+    setHTML(byId('charts'), '');
+    byId('trendNote').textContent = '';
+    byId('bandCheckNote').textContent = '';
     return;
   }
-  var a=S.unit.history.slice().reverse();
-  rows.innerHTML=a.map(function(x){
-    var f=String(x.status||'').toUpperCase().indexOf('FALL')>-1;
-    var ht=+x.temp,htOk=ht&&ht>=30&&ht<=42&&ht!==85;
-    var htTxt=htOk?ht.toFixed(1)+' °C':'--';
-    return '<tr><td>'+esc(x.time)+'</td><td>'+(x.bpm?esc(x.bpm)+' bpm':'--')+'</td><td>'+(x.spo2?esc(x.spo2)+'%':'--')+'</td><td>'+htTxt+'</td><td><span class="tag'+(f?' bad':'')+'">'+(f?'Fall detected':'Okay')+'</span></td></tr>';
-  }).join('');
-  var al=a.filter(function(x){return String(x.status||'').toUpperCase().indexOf('FALL')>-1});
-  alerts.innerHTML=al.map(function(x){return '<tr><td class="bad">Fall detected</td><td>'+esc(x.time)+'</td><td>Text message sent</td></tr>'}).join('')||'<tr><td>No alerts yet. Everything is within range.</td></tr>';
-}
-function chart(){
-  var s=byId('chart'),o='';
-  [[hr,40,140,'var(--blue)'],[ox,85,100,'var(--sky)']].forEach(function(a){var p=a[0].map(function(v,i){return (i*600/39)+','+(180-(v-a[1])/(a[2]-a[1])*170)}).join(' ');
-   o+='<polyline fill="none" stroke="'+a[3]+'" stroke-width="2.5" stroke-linejoin="round" points="'+p+'"/>'});
-  s.innerHTML='<line x1="0" x2="600" y1="95" y2="95" stroke="var(--line)"/>'+o;
-}
 
-// ---------- sign-in ----------
-async function loadSession(){
-  var r=await api('/api/session');
-  if(r.ok&&r.body){
-    S.usersEnabled=!!r.body.usersEnabled;
-    S.operator=!!r.body.signedIn;
-    S.user=r.body.user||null;
-    // In user mode the username is a real credential. In shared mode it is
-    // an optional label that is recorded in the activity log.
-    byId('uname').style.display='';
-    byId('uname').placeholder=S.usersEnabled?'Username':'Name (optional)';
-    byId('uname').required=!!S.usersEnabled;
+  var whoTxt = S.selected ? 'Unit ' + S.selected : 'No unit selected';
+  title.textContent = whoTxt;
+  who.textContent = S.selected
+    ? 'Readings as the unit reports them, and the band each one falls in.'
+    : 'Pick a unit on the Sites page to see its readings.';
+
+  if (S.operator && S.unit && d.reading) {
+    q.hidden = false;
+    q.className = 'chip ' + ({ MEASURED: 'ok', PARTIAL: 'check', SIMULATED: 'alert', NONE: 'nodata', UNVERIFIED: 'nodata' }[d.reading] || 'nodata');
+    q.textContent = ({ MEASURED: 'Measured', PARTIAL: 'Partial reading', SIMULATED: 'Demo data — not a measurement', NONE: 'No reading', UNVERIFIED: 'Unverified' }[d.reading]) || d.reading;
+  } else { q.hidden = true; }
+
+  byId('readingsStamp').textContent = S.unit ? 'Unit time ' + clockOf(d.ts) : '';
+
+  if (S.loadingUnit) {
+    setHTML(cards, '<div class="empty" style="grid-column:1/-1"><strong>Loading unit ' + esc(S.selected || '') + '</strong>Asking the relay for the latest reading.</div>');
+    setHTML(rows, '<tr><td colspan="4">Loading.</td></tr>');
+    setHTML(byId('charts'), '');
+    byId('trendNote').textContent = '';
+    byId('bandCheckNote').textContent = '';
+    return;
   }
-}
-function openSignin(){byId('signin').classList.add('on');byId('pw').focus()}
-function closeSignin(){byId('signin').classList.remove('on');byId('pw').value='';byId('pwMsg').textContent=''}
-byId('lockBtn').onclick=function(){S.operator?signOut():openSignin()};
-byId('signoutBtn').onclick=function(){signOut()};
-byId('heroSignin').onclick=openSignin;
-byId('pwGo').onclick=async function(){
-  var payload={password:byId('pw').value};
-  var un=(byId('uname').value||'').trim();
-  if(un)payload.username=un;
-  var r=await api('/api/login',{method:'POST',body:JSON.stringify(payload)});
-  if(r.ok){closeSignin();byId('uname').value='';await loadSession();await loadFleet();if(S.selected)await loadUnit()}
-  else byId('pwMsg').textContent=r.status===401?'Wrong credentials.':r.status===429?'Too many attempts - wait a few minutes.':'Sign-in unavailable.';
-};
-byId('pw').addEventListener('keydown',function(e){if(e.key==='Enter')byId('pwGo').click()});
-byId('uname').addEventListener('keydown',function(e){if(e.key==='Enter')byId('pwGo').click()});
-async function signOut(){
-  await api('/api/logout',{method:'POST'});
-  S.operator=false;S.selected=null;S.unit=null;S.detail=null;S.user=null;
-  await loadSession();await loadFleet();
-  if(!canSee(S.page))show('home');
-  paint();
-}
 
-// ---------- add a place ----------
-byId('npSave').onclick=async function(){
-  var code=(byId('npCode').value||'').trim(),name=(byId('npName').value||'').trim(),zone=(byId('npZone').value||'').trim();
-  var msg=byId('npMsg');
-  if(!/^[A-Za-z0-9_-]{1,32}$/.test(code)){msg.textContent='Code must be letters, digits, dash or underscore (max 32).';return}
-  if(!name){msg.textContent='Give the place a name.';return}
-  var r=await api('/api/site',{method:'POST',body:JSON.stringify({site:code,name:name,zone:zone})});
-  if(r.ok){msg.textContent='Saved.';byId('npCode').value='';byId('npName').value='';byId('npZone').value='';await loadFleet()}
-  else msg.textContent=r.status===401?'Sign in required.':(r.body&&r.body.error)||'Could not save.';
-};
+  if (!S.unit) {
+    setHTML(cards, '<div class="empty" style="grid-column:1/-1"><strong>No unit selected</strong>Open a unit code on the Sites page.</div>');
+    setHTML(rows, '<tr><td colspan="4">No unit selected.</td></tr>');
+    setHTML(byId('charts'), '');
+    byId('trendNote').textContent = '';
+    byId('bandCheckNote').textContent = '';
+    return;
+  }
 
-// ---------- user accounts ----------
-async function loadUsers(){
-  if(!isAdmin())return;
-  var r=await api('/api/users');
-  if(!r.ok||!r.body){byId('userRows').innerHTML='<tr><td colspan="6">User accounts are not enabled on this deployment.</td></tr>';return}
-  var b=r.body;
-  byId('userRows').innerHTML=(b.users||[]).map(function(u){
-    return '<tr><td><b>'+esc(u.username)+'</b></td><td>'+esc(u.name)+'</td><td>'+esc(u.role)+'</td>'
-      +'<td>'+(u.enabled?'<span class="pill ok">enabled</span>':'<span class="pill off">disabled</span>')+'</td>'
-      +'<td>'+(u.lastLogin?new Date(u.lastLogin).toLocaleString():'never')+'</td>'
-      +'<td><button class="btn sm" data-toggle="'+esc(u.username)+'">'+(u.enabled?'Disable':'Enable')+'</button> '
-      +'<button class="btn sm" data-del="'+esc(u.username)+'">Delete</button></td></tr>';
-  }).join('')||'<tr><td colspan="6">No accounts yet.</td></tr>';
-  byId('sessRows').innerHTML=(b.sessions||[]).map(function(s){
-    return '<tr><td>'+esc(s.username)+'</td><td>'+new Date(s.createdAt).toLocaleString()+'</td><td>'+new Date(s.exp).toLocaleString()+'</td></tr>';
-  }).join('')||'<tr><td colspan="3">No active sessions.</td></tr>';
-  byId('auditRows').innerHTML=(b.audit||[]).map(function(a){
-    return '<tr><td>'+new Date(a.ts).toLocaleString()+'</td><td>'+esc(a.actor)+'</td><td>'+esc(a.action)+'</td><td>'+esc(a.detail||'')+'</td></tr>';
-  }).join('')||'<tr><td colspan="4">Nothing logged yet.</td></tr>';
-  document.querySelectorAll('[data-toggle]').forEach(function(b2){
-    b2.onclick=async function(){
-      var un=b2.dataset.toggle;
-      var cur=(b.users||[]).filter(function(u){return u.username===un})[0];
-      await api('/api/users',{method:'PATCH',body:JSON.stringify({username:un,enabled:!(cur&&cur.enabled)})});
-      loadUsers();
-    };
+  var bands = S.bands || {};
+  var hrLevel = bands.heart_rate || 'nodata';
+  var oxLevel = bands.spo2 || 'nodata';
+  var tpLevel = bands.temperature || 'nodata';
+
+  var html = '';
+  html += readingCard('heart_rate', 'Heart rate', d.bpm, 'bpm', hrLevel,
+    d.bpm > 0 ? levelChip(hrLevel, bandWord(hrLevel)) : '',
+    d.bpm > 0 ? 'Band: ' + bandDescription('heart_rate', hrLevel) : 'The unit has no valid pulse reading.');
+  html += readingCard('spo2', 'SpO₂', d.spo2, '%', oxLevel,
+    d.spo2 > 0 ? levelChip(oxLevel, bandWord(oxLevel)) : '',
+    d.spo2 > 0 ? 'Band: ' + bandDescription('spo2', oxLevel) : 'The unit has no valid oxygen reading.');
+  html += readingCard('temperature', 'Body temperature', d.temp, '°C', tpLevel,
+    d.temp > 0 ? levelChip(tpLevel, bandWord(tpLevel)) : '',
+    d.temp > 0 ? 'Band: ' + bandDescription('temperature', tpLevel) : 'No temperature sensor is answering.');
+
+  var fallLevel = d.fall ? 'alert' : 'ok';
+  html += '<div class="reading"><div class="k">Fall</div>';
+  html += '<div class="v ' + fallLevel + '" style="font-size:1.125rem">' + (d.fall ? 'Fall detected' : 'None detected') + '</div>';
+  html += '<div class="s">Reported by the unit</div>';
+  html += '<div class="band">' + levelChip(fallLevel, d.fall ? 'Alert' : 'Within range') + '</div></div>';
+
+  // The status of the unit as a whole, graded against the same bands the
+  // unit itself uses. The status the unit published is on the Connection
+  // page, because the wire only carries OKAY or FALL DETECTED.
+  var overall = 'nodata';
+  if (hrLevel !== 'nodata' || oxLevel !== 'nodata' || tpLevel !== 'nodata') {
+    var levels = [hrLevel, oxLevel, tpLevel].filter(function (l) { return l !== 'nodata'; });
+    overall = levels.indexOf('alert') > -1 ? 'alert' : levels.indexOf('check') > -1 ? 'check' : 'ok';
+  }
+  html += '<div class="reading"><div class="k">Status</div>';
+  html += '<div class="v ' + overall + '" style="font-size:1.125rem">' + (overall === 'nodata' ? 'No reading' : bandWord(overall)) + '</div>';
+  html += '<div class="s">Graded against the alert bands</div>';
+  html += '<div class="band">' + (overall === 'nodata' ? '<span class="chip nodata">No reading</span>' : levelChip(overall, bandWord(overall))) + '</div></div>';
+
+  html += '<div class="reading"><div class="k">SMS module</div>';
+  html += '<div class="v" style="font-size:1.125rem">' + esc(d.gsm || 'No report') + '</div>';
+  html += '<div class="s">The state the unit published</div></div>';
+  setHTML(cards, html);
+
+  // Band check table
+  var th = S.thresholds;
+  var trows = '';
+  [['heart_rate', 'Heart rate', d.bpm, hrLevel, 'bpm'],
+   ['spo2', 'SpO₂', d.spo2, oxLevel, '%'],
+   ['temperature', 'Body temperature', d.temp, tpLevel, '°C']].forEach(function (r) {
+    var key = r[0], label = r[1], value = r[2], level = r[3], unit = r[4];
+    var desc = bandDescription(key, level);
+    trows += '<tr><th scope="row" style="background:none;text-transform:none;font-size:.8125rem;color:var(--ink)">' + esc(label) + '</th>';
+    trows += '<td class="num">' + (value > 0 ? value.toFixed(key === 'temperature' ? 1 : 0) + ' ' + unit : '—') + '</td>';
+    trows += '<td>' + (value > 0 ? levelChip(level, bandWord(level)) : '<span class="chip nodata">No reading</span>') + '</td>';
+    trows += '<td>' + esc(desc || '—') + '</td></tr>';
   });
-  document.querySelectorAll('[data-del]').forEach(function(b3){
-    b3.onclick=async function(){
-      if(!confirm('Delete account '+b3.dataset.del+'?'))return;
-      await api('/api/users?username='+encodeURIComponent(b3.dataset.del),{method:'DELETE'});
-      loadUsers();
-    };
-  });
-}
-byId('nuSave').onclick=async function(){
-  var msg=byId('nuMsg');
-  var payload={name:(byId('nuName').value||'').trim(),username:(byId('nuUser').value||'').trim(),
-    password:byId('nuPass').value,role:byId('nuRole').value};
-  var r=await api('/api/users',{method:'POST',body:JSON.stringify(payload)});
-  if(r.ok){msg.textContent='Account created.';byId('nuName').value='';byId('nuUser').value='';byId('nuPass').value='';loadUsers()}
-  else msg.textContent=(r.body&&r.body.error)||'Could not create the account.';
-};
-var origShow=show;
-show=function(p){origShow(p);if(p==='users')loadUsers();};
+  trows += '<tr><th scope="row" style="background:none;text-transform:none;font-size:.8125rem;color:var(--ink)">Fall</th>';
+  trows += '<td class="num">' + (d.fall ? 'Detected' : 'None') + '</td>';
+  trows += '<td>' + levelChip(d.fall ? 'alert' : 'ok', d.fall ? 'Alert' : 'Within range') + '</td>';
+  trows += '<td>' + (d.fall ? 'a fall was detected' : 'no fall detected') + '</td></tr>';
+  setHTML(rows, trows);
+  byId('bandCheckNote').textContent = th ? 'Bands as the unit evaluates them.' : 'The relay did not return the alert bands.';
 
-// ---------- loop ----------
-(async function(){
+  renderCharts();
+}
+
+function renderCharts() {
+  var wrap = byId('charts');
+  if (!S.unit) { setHTML(wrap, ''); byId('trendNote').textContent = ''; return; }
+  var specs = [
+    { key: 'heart_rate', label: 'Heart rate', unit: 'bpm', points: series.hr, min: 40, max: 140, decimals: 0 },
+    { key: 'spo2', label: 'SpO₂', unit: '%', points: series.spo2, min: 85, max: 100, decimals: 0 },
+    { key: 'temperature', label: 'Body temperature', unit: '°C', points: series.temp, min: 25, max: 40, decimals: 1 }
+  ];
+  var html = '';
+  specs.forEach(function (sp) {
+    sp.band = bandBounds(sp.key);
+    html += '<div class="chart-card">';
+    html += '<div class="chart-head"><span class="t">' + esc(sp.label) + '</span><span class="n">' + sp.points.length + ' of ' + SERIES_MAX + ' samples</span></div>';
+    if (!sp.points.length) {
+      html += '<p class="note">No readings yet. The chart fills as the unit reports.</p>';
+    } else {
+      html += drawTrend(sp);
+    }
+    html += '<div class="chart-legend"><span><i style="background:var(--accent)"></i>' + esc(sp.label) + '</span>';
+    if (sp.band) html += '<span><i style="background:var(--ok-soft);border:1px solid var(--ok)"></i>within range: ' + esc(bandRange(sp.key)) + '</span>';
+    html += '</div></div>';
+  });
+  setHTML(wrap, html);
+  byId('trendNote').textContent = 'Last ' + SERIES_MAX + ' readings the unit published.';
+}
+
+// A small line chart with its own y scale, a shaded band for the range
+// inside which the unit reports no problem, and labelled axes.
+function drawTrend(sp) {
+  var W = 340, H = 108, L = 38, R = 8, T = 8, B = 20;
+  var pw = W - L - R, ph = H - T - B;
+  var n = sp.points.length;
+  var x = function (i) { return L + (n === 1 ? pw / 2 : (i / (n - 1)) * pw); };
+  var y = function (v) { return T + ph - ((v - sp.min) / (sp.max - sp.min)) * ph; };
+
+  var bandTop = null, bandBottom = null;
+  if (sp.band && typeof sp.band.min === 'number' && typeof sp.band.max === 'number') {
+    var lo = Math.max(sp.band.min, sp.min), hi = Math.min(sp.band.max, sp.max);
+    bandTop = y(hi);
+    bandBottom = y(lo);
+  }
+
+  var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(sp.label + ' trend, ' + n + ' readings, latest ' + sp.points[n - 1] + ' ' + sp.unit) + '">';
+  if (bandTop !== null) {
+    s += '<rect x="' + L + '" y="' + bandTop.toFixed(1) + '" width="' + pw + '" height="' + Math.max(0, bandBottom - bandTop).toFixed(1) + '" fill="var(--ok-soft)"></rect>';
+  }
+  // Horizontal grid + y labels
+  [sp.min, (sp.min + sp.max) / 2, sp.max].forEach(function (v) {
+    s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v).toFixed(1) + '" y2="' + y(v).toFixed(1) + '" stroke="var(--line)" stroke-width="1"></line>';
+    s += '<text x="' + (L - 6) + '" y="' + (y(v) + 3.5).toFixed(1) + '" text-anchor="end" font-size="9" fill="var(--mute)">' + v.toFixed(sp.decimals) + '</text>';
+  });
+  s += '<line x1="' + L + '" x2="' + L + '" y1="' + T + '" y2="' + (T + ph) + '" stroke="var(--edge)" stroke-width="1"></line>';
+  s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + (T + ph) + '" y2="' + (T + ph) + '" stroke="var(--edge)" stroke-width="1"></line>';
+  var pts = sp.points.map(function (v, i) { return x(i).toFixed(1) + ',' + y(v).toFixed(1); }).join(' ');
+  s += '<polyline fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" points="' + pts + '"></polyline>';
+  s += '<circle cx="' + x(n - 1).toFixed(1) + '" cy="' + y(sp.points[n - 1]).toFixed(1) + '" r="3" fill="var(--accent)"></circle>';
+  s += '<text x="' + L + '" y="' + (H - 5) + '" font-size="9" fill="var(--mute)">' + (n === 1 ? 'only reading' : '−' + (n - 1) + ' readings') + '</text>';
+  s += '<text x="' + (W - R) + '" y="' + (H - 5) + '" text-anchor="end" font-size="9" fill="var(--mute)">now</text>';
+  s += '<text x="' + (L - 6) + '" y="' + (T + 4) + '" text-anchor="end" font-size="9" fill="var(--mute)">' + esc(sp.unit) + '</text>';
+  s += '</svg>';
+  return s;
+}
+
+function renderHistory() {
+  var rows = byId('historyRows');
+  byId('historyWho').textContent = S.operator
+    ? (S.selected ? 'Readings unit ' + S.selected + ' saved, newest first.' : 'Readings the unit saved, newest first.')
+    : 'Readings the unit saved, newest first.';
+  var history = (S.unit && S.unit.history) || [];
+  if (!S.operator) { setHTML(rows, '<tr><td colspan="6">Sign in and pick a unit.</td></tr>'); return; }
+  if (!history.length) { setHTML(rows, '<tr><td colspan="6">This unit has not saved any readings yet.</td></tr>'); return; }
+  var a = history.slice().reverse();
+  var html = a.map(function (x) {
+    var fall = String(x.status || '').toUpperCase().indexOf('FALL') > -1;
+    var t = num(x.temp);
+    var tOk = t >= 30 && t <= 42 && t !== 85;
+    var band = x.band || 'nodata';
+    var cell = fall
+      ? '<span class="chip alert">Fall detected</span>'
+      : (band === 'nodata' ? '<span class="chip nodata">No reading</span>' : levelChip(band, bandWord(band)));
+    return '<tr>'
+      + '<td class="num">' + esc(x.time || '–') + '</td>'
+      + '<td class="num">' + (num(x.bpm) ? num(x.bpm) + ' bpm' : '—') + '</td>'
+      + '<td class="num">' + (num(x.spo2) ? num(x.spo2) + ' %' : '—') + '</td>'
+      + '<td class="num">' + (tOk ? t.toFixed(1) + ' °C' : '—') + '</td>'
+      + '<td>' + cell + '</td>'
+      + '<td>' + readingChip(x.reading) + '</td>'
+      + '</tr>';
+  }).join('');
+  setHTML(rows, html);
+}
+
+function renderBands() {
+  var rows = byId('bandRows');
+  var t = S.thresholds;
+  if (!t) {
+    setHTML(rows, '<tr><td colspan="4">The relay did not return the alert bands, so they cannot be shown here.</td></tr>');
+    byId('bandSource').textContent = '';
+    return;
+  }
+  var html = '';
+  ['heart_rate', 'spo2', 'temperature', 'fall'].forEach(function (key) {
+    var b = t[key];
+    if (!b) return;
+    html += '<tr><th scope="row" style="background:none;text-transform:none;font-size:.8125rem;color:var(--ink)">' + esc(b.label) + '</th>';
+    html += '<td>' + esc(b.ranges.ok || '—') + '</td>';
+    html += '<td>' + esc(b.ranges.check || '—') + '</td>';
+    html += '<td>' + esc(b.ranges.alert || '—') + '</td></tr>';
+  });
+  setHTML(rows, html);
+  byId('bandSource').textContent = 'Served by the relay, which reads them from the same table the unit is built from.';
+
+  var falls = ((S.unit && S.unit.history) || []).filter(function (x) {
+    return String(x.status || '').toUpperCase().indexOf('FALL') > -1;
+  });
+  byId('fallCount').textContent = falls.length ? falls.length + ' recorded' : '';
+  setHTML(byId('fallRows'), falls.length
+    ? falls.slice().reverse().map(function (x) {
+      return '<tr><td class="num">' + esc(x.time || '–') + '</td><td><span class="chip alert">Fall detected</span></td><td>' + esc(d.gsm || '—') + '</td></tr>';
+    }).join('')
+    : '<tr><td colspan="3">No falls recorded for this unit.</td></tr>');
+}
+
+function renderConnection() {
+  var cards = byId('connectionCards');
+  if (!S.operator) {
+    setHTML(cards, '<div class="empty" style="grid-column:1/-1"><strong>Operator only</strong>Connection detail is released to a signed-in operator.</div>');
+    return;
+  }
+  var html = '';
+  html += '<div class="reading"><div class="k">Relay</div><div class="v ' + (S.relayUp ? 'ok' : 'alert') + '" style="font-size:1.125rem">' + (S.relayUp ? 'Online' : 'Offline') + '</div><div class="s">Path from the units to this page</div></div>';
+  html += '<div class="reading"><div class="k">Operator session</div><div class="v ' + (S.operator ? 'ok' : '') + '" style="font-size:1.125rem">' + (S.operator ? 'Signed in' : 'Locked') + '</div><div class="s">Readings need a session</div></div>';
+  html += '<div class="reading"><div class="k">Places</div><div class="v" style="font-size:1.125rem">' + (S.sites.length || '–') + '</div><div class="s">Sites the relay knows</div></div>';
+  html += '<div class="reading"><div class="k">Selected unit</div><div class="v" style="font-size:1.125rem">' + esc(S.selected || '–') + '</div><div class="s">The unit this page is showing</div></div>';
+  html += '<div class="reading"><div class="k">Reported status</div><div class="v" style="font-size:1.125rem">' + esc(d.status || 'No report') + '</div><div class="s">The status the unit published</div></div>';
+  html += '<div class="reading"><div class="k">Reading</div><div class="v" style="font-size:1.125rem">' + esc(d.reading || '–') + '</div><div class="s">How the unit describes its numbers</div></div>';
+  html += '<div class="reading"><div class="k">SMS module</div><div class="v" style="font-size:1.125rem">' + esc(d.gsm || 'No report') + '</div><div class="s">The state the unit published</div></div>';
+  setHTML(cards, html);
+}
+
+// ---------------------------------------------------------------------------
+// Accounts
+// ---------------------------------------------------------------------------
+async function loadAccounts() {
+  if (!isAdmin()) return;
+  var r = await api('/api/users');
+  if (!r.ok || !r.body) {
+    setHTML(byId('userRows'), '<tr><td colspan="6">User accounts are not enabled on this deployment.</td></tr>');
+    return;
+  }
+  var b = r.body;
+  S.accountUsers = b.users || [];
+  byId('userCount').textContent = S.accountUsers.length + ' account' + (S.accountUsers.length === 1 ? '' : 's');
+  setHTML(byId('userRows'), S.accountUsers.map(function (u) {
+    return '<tr><td><b>' + esc(u.username) + '</b></td><td>' + esc(u.name) + '</td><td>' + esc(u.role) + '</td>'
+      + '<td>' + (u.enabled ? '<span class="chip ok">Enabled</span>' : '<span class="chip off">Disabled</span>') + '</td>'
+      + '<td class="num">' + (u.lastLogin ? new Date(u.lastLogin).toLocaleString() : 'never') + '</td>'
+      + '<td><button class="btn secondary small" type="button" data-toggle="' + esc(u.username) + '">' + (u.enabled ? 'Disable' : 'Enable') + '</button> '
+      + '<button class="btn secondary small" type="button" data-del="' + esc(u.username) + '">Delete</button></td></tr>';
+  }).join('') || '<tr><td colspan="6">No accounts yet.</td></tr>');
+  setHTML(byId('sessRows'), (b.sessions || []).map(function (s) {
+    return '<tr><td>' + esc(s.username) + '</td><td class="num">' + new Date(s.createdAt).toLocaleString() + '</td><td class="num">' + new Date(s.exp).toLocaleString() + '</td></tr>';
+  }).join('') || '<tr><td colspan="3">No active sessions.</td></tr>');
+  setHTML(byId('auditRows'), (b.audit || []).map(function (a) {
+    return '<tr><td class="num">' + new Date(a.ts).toLocaleString() + '</td><td>' + esc(a.actor) + '</td><td>' + esc(a.action) + '</td><td>' + esc(a.detail || '') + '</td></tr>';
+  }).join('') || '<tr><td colspan="4">Nothing logged yet.</td></tr>');
+}
+
+// ---------------------------------------------------------------------------
+// Sign in
+// ---------------------------------------------------------------------------
+var lastFocus = null;
+
+function focusables() {
+  return Array.prototype.filter.call(
+    byId('signinBox').querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled])'),
+    function (el) { return !el.hidden && el.getAttribute('aria-hidden') !== 'true' && el.type !== 'hidden'; }
+  );
+}
+
+function openSignin() {
+  lastFocus = document.activeElement;
+  byId('signin').hidden = false;
+  byId('pwMsg').textContent = '';
+  var f = focusables();
+  (byId('pw') && !byId('pw').disabled ? byId('pw') : f[0]).focus();
+}
+
+function closeSignin() {
+  byId('signin').hidden = true;
+  byId('pw').value = '';
+  byId('pwMsg').textContent = '';
+  if (lastFocus && lastFocus.focus) lastFocus.focus();
+}
+
+byId('signinClose').addEventListener('click', closeSignin);
+byId('signin').addEventListener('mousedown', function (e) {
+  if (e.target === byId('signin')) closeSignin();
+});
+document.addEventListener('keydown', function (e) {
+  if (byId('signin').hidden) return;
+  if (e.key === 'Escape') { e.preventDefault(); closeSignin(); return; }
+  if (e.key !== 'Tab') return;
+  // Keep the keyboard inside the dialog while it is open.
+  var f = focusables();
+  if (!f.length) return;
+  var first = f[0], last = f[f.length - 1];
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+});
+
+byId('lockBtn').addEventListener('click', openSignin);
+byId('signoutBtn').addEventListener('click', async function () {
+  await api('/api/logout', { method: 'POST' });
+  S.operator = false; S.selected = null; S.unit = null; S.detail = null; S.user = null; S.bands = null; S.thresholds = null;
+  series = { hr: [], spo2: [], temp: [] };
   await loadSession();
   await loadFleet();
-  setInterval(loadFleet,5000);
-  setInterval(function(){if(S.operator&&S.selected)loadUnit();else paint();},2000);
-  setInterval(paint,10000);
+  if (!canSee(S.page)) show('home');
+  render();
+});
+
+byId('signinForm').addEventListener('submit', async function (e) {
+  e.preventDefault();
+  var msg = byId('pwMsg');
+  var btn = byId('pwGo');
+  msg.textContent = '';
+  btn.disabled = true;
+  var payload = { password: byId('pw').value };
+  var un = (byId('uname').value || '').trim();
+  if (un) payload.username = un;
+  var r = await api('/api/login', { method: 'POST', body: JSON.stringify(payload) });
+  btn.disabled = false;
+  if (r.ok) {
+    closeSignin();
+    byId('uname').value = '';
+    await loadSession();
+    await loadFleet();
+    if (S.selected) await loadUnit();
+    render();
+  } else {
+    msg.textContent = r.status === 401 ? 'That username and password did not match.'
+      : r.status === 429 ? 'Too many attempts. Wait a few minutes and try again.'
+      : 'Sign-in is not available right now.';
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Forms
+// ---------------------------------------------------------------------------
+byId('addPlaceForm').addEventListener('submit', async function (e) {
+  e.preventDefault();
+  var msg = byId('npMsg');
+  msg.className = 'msg';
+  var code = (byId('npCode').value || '').trim();
+  var name = (byId('npName').value || '').trim();
+  var zone = (byId('npZone').value || '').trim();
+  if (!/^[A-Za-z0-9_-]{1,32}$/.test(code)) { msg.className = 'msg err'; msg.textContent = 'The code may use letters, digits, dash and underscore, up to 32 characters.'; return; }
+  if (!name) { msg.className = 'msg err'; msg.textContent = 'Give the place a name.'; return; }
+  var r = await api('/api/site', { method: 'POST', body: JSON.stringify({ site: code, name: name, zone: zone }) });
+  if (r.ok) {
+    msg.className = 'msg good';
+    msg.textContent = 'Saved ' + name + '.';
+    byId('npCode').value = ''; byId('npName').value = ''; byId('npZone').value = '';
+    await loadFleet();
+  } else {
+    msg.className = 'msg err';
+    msg.textContent = r.status === 401 ? 'Sign in to add a place.' : ((r.body && r.body.error) || 'The place could not be saved.');
+  }
+});
+
+byId('addUserForm').addEventListener('submit', async function (e) {
+  e.preventDefault();
+  var msg = byId('nuMsg');
+  msg.className = 'msg';
+  var payload = {
+    name: (byId('nuName').value || '').trim(),
+    username: (byId('nuUser').value || '').trim(),
+    password: byId('nuPass').value,
+    role: byId('nuRole').value
+  };
+  var r = await api('/api/users', { method: 'POST', body: JSON.stringify(payload) });
+  if (r.ok) {
+    msg.className = 'msg good';
+    msg.textContent = 'Account ' + payload.username + ' created.';
+    byId('nuName').value = ''; byId('nuUser').value = ''; byId('nuPass').value = '';
+    loadAccounts();
+  } else {
+    msg.className = 'msg err';
+    msg.textContent = (r.body && r.body.error) || 'The account could not be created.';
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Events
+// ---------------------------------------------------------------------------
+document.addEventListener('click', function (e) {
+  var unit = e.target.closest ? e.target.closest('[data-unit]') : null;
+  if (unit) {
+    e.preventDefault();
+    selectUnit(unit.dataset.unit);
+    if (location.hash !== '#readings') { location.hash = '#readings'; }
+    else { show('readings'); }
+    return;
+  }
+  var toggle = e.target.closest ? e.target.closest('[data-toggle]') : null;
+  if (toggle) {
+    var un = toggle.dataset.toggle;
+    var users = (S.accountUsers || []);
+    var cur = users.filter(function (u) { return u.username === un; })[0];
+    api('/api/users', { method: 'PATCH', body: JSON.stringify({ username: un, enabled: !(cur && cur.enabled) }) }).then(loadAccounts);
+    return;
+  }
+  var del = e.target.closest ? e.target.closest('[data-del]') : null;
+  if (del) {
+    var name = del.dataset.del;
+    // Two-step confirmation in the page, so a stray click does not delete an
+    // account and there is no native dialog to dismiss.
+    if (del.dataset.armed !== '1') {
+      del.dataset.armed = '1';
+      del.textContent = 'Press again to delete';
+      del.classList.add('btn', 'danger');
+      setTimeout(function () {
+        if (!del.isConnected) return;
+        del.dataset.armed = '0';
+        del.textContent = 'Delete';
+        del.classList.remove('btn', 'danger');
+      }, 5000);
+      return;
+    }
+    api('/api/users?username=' + encodeURIComponent(name), { method: 'DELETE' }).then(loadAccounts);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Loop
+// ---------------------------------------------------------------------------
+async function tick() {
+  await loadFleet();
+  if (S.operator && S.selected) await loadUnit();
+}
+
+// The page polls the relay. It stops while the tab is in the background so
+// an idle laptop is not waking the relay every few seconds.
+var poll = setInterval(function () {
+  if (document.hidden) return;
+  tick();
+}, 5000);
+
+document.addEventListener('visibilitychange', function () {
+  if (!document.hidden) tick();
+});
+
+(async function start() {
+  await loadSession();
+  await loadFleet();
+  var p = (location.hash || '').replace('#', '');
+  if (PAGES.indexOf(p) === -1) p = 'home';
+  show(p);
+  setInterval(function () { if (S.operator && S.selected) loadUnit(); else render(); }, 2000);
 })();
 </script>
 </body>

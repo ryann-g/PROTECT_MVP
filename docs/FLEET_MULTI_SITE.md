@@ -128,17 +128,34 @@ from `web/index.html` entirely.
 | `POST /api/login` | — | password -> signed HttpOnly cookie |
 | `POST /api/logout` | — | clear cookie |
 | `GET /api/unit?id=` | operator | one unit's vitals + history |
+| `GET /api/session` | public | who is signed in; the alert bands, to a signed-in operator |
 | `GET /api/site` | public | place registry |
 | `POST /api/site` | operator | create/rename a place |
 | `POST /api/ingest` | device token | device uplink (firmware phase) |
 | `GET /api/health` | public | mode / db / preview state |
 
+### The alert bands come from the relay, not the browser
+
+The bands the unit evaluates are written down once, in
+`api/_lib/thresholds.js`, and are served to a signed-in operator on
+`/api/session` and `/api/unit`. The browser keeps no copy of them.
+
+This matters because the bands used to live in three places that disagreed
+with each other — the firmware, the relay's fleet aggregation, and the
+website — so the same reading could be an ALERT on the device and a CHECK on
+the screen. The table in `api/_lib/thresholds.js` is now a transcription of
+the firmware constants, and `relay/test/api.test.js` pins every band edge, so
+a drift fails a test rather than reaching a caregiver.
+
+The bands are **not** in the public `/api/fleet` payload: that payload
+deliberately names no vital field at all, and the band table is keyed by the
+same names.
+
 ### Files
 
 ```
 api/
-  fleet.js login.js logout.js unit.js site.js ingest.js health.js
-  _lib/config.js    env-driven configuration
+  fleet.js login.js logout.js unit.js site.js ingest.js health.js  _lib/config.js    env-driven configuration
   _lib/db.js        storage adapter (Admin SDK when a service account exists, REST otherwise)
   _lib/auth.js      constant-time password check, HMAC-signed session cookies
   _lib/fleet.js     aggregation + public projection
@@ -327,10 +344,10 @@ api/session.js         who is signed in
 ## 9. Tests
 
 ```bash
-npm test              # all three suites (143 assertions)
-npm run test:api      # relay endpoints (47 assertions)
+npm test              # all three suites (203 assertions)
+npm run test:api      # relay endpoints + the alert bands (81 assertions)
 npm run test:users    # account system in users mode (49 assertions)
-npm run test:site     # website in a real DOM (47 assertions)
+npm run test:site     # website in a real DOM (73 assertions)
 ```
 
 - `relay/test/api.test.js` — the database is mocked, so no test touches the

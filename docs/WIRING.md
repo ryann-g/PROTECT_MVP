@@ -15,10 +15,16 @@
 - Offset-calibrate against a reference thermometer (`TEMP_OFFSET_C`).
 - It replaced the DS18B20 probe, which occupied GPIO4 — the pin now used by
   the SOS button.
+- **STATUS 2026-10-22: the MCP9808 is the only temperature sensor in the
+  firmware.** The DS18B20 path, its `PIN_DS18B20`, and the OneWire and
+  DallasTemperature includes have been removed from every sketch, so no
+  sketch can drive GPIO4 any more. When the MCP9808 is not fitted the unit
+  reports no temperature rather than a value it made up.
 
 ## Body temp: DS18B20 waterproof probe (legacy — UNPLUGGED, do not reconnect)
 **STATUS 2026-10-20: the DS18B20 is DISCONNECTED. GPIO4 now belongs to the SOS
-button. Leave the probe unplugged — see the warning below.**
+button. Leave the probe unplugged — see the warning below. The firmware no
+longer knows this sensor exists.**
 - RED VCC → 3V3, BLACK GND → GND, YELLOW DATA → GPIO4 (was; do not reconnect)
 - 4.7k pull-up DATA→3V3 (mandatory — isolation-proven pin, matches `PIN_DS18B20 = 4`).
 - Terminal adapter: probe leads screwed firmly into block, adapter pins to ESP32.

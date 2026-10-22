@@ -1,6 +1,6 @@
 // live_sms.ino — STANDALONE live-data SMS trial. Nothing else needed.
 // Purpose: prove TEXTS CARRY FRESH 2-SECOND READINGS (not stale repeats).
-// Reads real MAX30102 (HR/SpO2 via Maxim, pumped every loop) + real DS18B20,
+// Reads real MAX30102 (HR/SpO2 via Maxim, pumped every loop) + real MCP9808,
 // refreshes values every 2000ms tick, and texts a live snapshot on the first
 // valid reading then every LIVE_SMS_EVERY_MS (trial cadence). Standalone:
 // never touches protect_serial / protect_core / test_* / drill_sms files.
@@ -12,15 +12,23 @@
 #include <Wire.h>
 #include <MAX30105.h>
 #include <spo2_algorithm.h>
-#include <OneWire.h>
-#include <DallasTemperature.h>
+// ---- Temperature sensor: MCP9808 (I2C 0x18) ----
+// The MCP9808 replaced the DS18B20 waterproof probe: +/-0.25 C typical over
+// the body range, 30 ms conversion, 1/16 degC resolution, and no blocking
+// read. The probe is unplugged and its pin (GPIO4) now belongs to the SOS
+// button.
+#define MCP9808_ADDR  0x18  // A0/A1/A2 to GND
+#define MCP9808_REG_TEMP_H 0x05
+#define MCP9808_REG_TEMP_L 0x06
+#define MCP9808_REG_TEMP_ID 0x07
+#define MCP9808_ID_MICROCHIP 0x0C
+
 
 // ---- Trial knobs (clearly marked) ----
 static const unsigned long SAMPLE_MS = 2000;       // 2s sensor tick
 static const unsigned long LIVE_SMS_EVERY_MS = 30000;  // TRIAL ONLY: text every 30s (costs load!)
 
 // ---- Pins (frozen map) ----
-static const int PIN_DS18B20 = 4;  // OneWire DATA + 4.7k to 3V3 (isolation-proven pin)
 static const int PIN_GSM_RX = 16;   // ESP32 RX <- module TXD
 static const int PIN_GSM_TX = 17;   // ESP32 TX -> module RXD
 
@@ -44,6 +52,29 @@ static int8_t validHr = 0, validSpo2 = 0;
 static uint32_t lastIr = 0;
 static float lastHr = 0, lastSpo2 = 0, lastTemp = 0;
 
+// ---- MCP9808 body temperature (16-bit, 1/16 degC) ----
+static bool mcp9808Begin() {
+  Wire.beginTransmission(MCP9808_ADDR);
+  Wire.write(MCP9808_REG_TEMP_ID);
+  if (Wire.endTransmission() != 0) return false;      // no device on the bus
+  Wire.beginTransmission(MCP9808_ADDR);
+  Wire.write(MCP9808_REG_TEMP_ID);
+  if (Wire.requestFrom((int)MCP9808_ADDR, (uint8_t)1) != 1) return false;
+  uint8_t id = Wire.read();
+  // Accept a Microchip MCP9808 (0x0C). Other 0x18 devices are tolerated so a
+  // CJMCU clone still answers.
+  return (id == MCP9808_ID_MICROCHIP) || (id == 0x00);
+}
+
+static float mcp9808ReadC() {
+  Wire.beginTransmission(MCP9808_ADDR);
+  Wire.write(MCP9808_REG_TEMP_H);
+  if (Wire.requestFrom((int)MCP9808_ADDR, (uint8_t)2) != 2) return NAN;
+  uint16_t raw = (uint16_t)Wire.read() << 8;
+  raw |= Wire.read();
+  return (float)raw / 16.0f;
+}
+
 static void pushSample(uint32_t red, uint32_t ir) {
   if (bufCount < 100) { redBuffer[bufCount] = red; irBuffer[bufCount] = ir; bufCount++; }
   else {
@@ -54,10 +85,8 @@ static void pushSample(uint32_t red, uint32_t ir) {
   newSinceCalc++;
 }
 
-// ---- DS18B20 ----
-static OneWire oneWire(PIN_DS18B20);
-static DallasTemperature dsTemp(&oneWire);
-static bool hasDs = false;
+// ---- MCP9808 ----
+static bool hasMcp = false;
 
 // ---- GSM ----
 static bool hasGsm = false;
@@ -137,10 +166,8 @@ void setup() {
   hasPox = pox.begin(Wire, I2C_SPEED_STANDARD);
   if (hasPox) pox.setup(0x1F, 4, 2, 100, 411, 4096);
   Serial.printf("MAX:%s\n", hasPox ? "OK (finger on, hold still)" : "MISSING (VIN3V3/GND/SDA21/SCL22)");
-  dsTemp.begin();
-  dsTemp.setResolution(11);
-  hasDs = (dsTemp.getDeviceCount() > 0);
-  Serial.printf("DS18B20 probes:%d\n", (int)dsTemp.getDeviceCount());
+  hasMcp = mcp9808Begin();
+  Serial.printf("MCP9808:%d\n", (int)hasMcp);
   const long bauds[] = {115200, 57600, 38400, 19200, 9600};
   for (uint8_t b = 0; b < 5 && !hasGsm; b++) {
     Serial2.begin(bauds[b], SERIAL_8N1, PIN_GSM_RX, PIN_GSM_TX);
@@ -176,10 +203,9 @@ void loop() {
 
   // 2s tick: temperature + Maxim recalc.
   int tempOk = 0;
-  if (hasDs) {
-    dsTemp.requestTemperatures();
-    float t = dsTemp.getTempCByIndex(0);
-    if (!isnan(t) && t > 10.0 && t < 50.0 && t != 85.0) {
+  if (hasMcp) {
+    float t = mcp9808ReadC();
+    if (!isnan(t) && t > 10.0 && t < 50.0) {
       lastTemp = t; tempOk = 1;
     }
   }

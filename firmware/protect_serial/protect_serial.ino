@@ -52,7 +52,7 @@ void loop() {
     Serial.println(F("EVENT SOS_PRESS"));
   }
 
-  // 2s sample + serial screen + alert (SAMPLE_MS=2000: DS18B20 conversion + Maxim window)
+  // 2s sample + serial screen + alert (SAMPLE_MS=2000: Maxim window cadence)
   if (now - tSample >= SAMPLE_MS) {
     tSample = now;
     cur = sensorsRead();

@@ -1,5 +1,5 @@
 // protect_core.ino — P.R.O.T.E.C.T. Final all-5 + TFT build.
-// Sensors (Input): MAX30102 (HR/SpO2 Maxim) + DS18B20 (body temp probe) + DS3231-mini (clock
+// Sensors (Input): MAX30102 (HR/SpO2 Maxim) + MCP9808 (body temp) + DS3231-mini (clock
 //   + case temp) + MPU6050 fall (0x69) + SIM800L SMS — all on one ESP32.
 // Process: ESP32 thresholds/smoothing. Output: TFT + SD CSV + LEDs/buzzer + SMS.
 // Non-blocking: millis() timers, no delay() in loop. 115200 baud.
@@ -54,7 +54,7 @@ void loop() {
     Serial.println(F("EVENT SOS_PRESS"));
   }
 
-  // 2s sample + display + alert (SAMPLE_MS=2000: DS18B20 conversion + Maxim window)
+  // 2s sample + display + alert (SAMPLE_MS=2000: Maxim window cadence)
   if (now - tSample >= SAMPLE_MS) {
     tSample = now;
     cur = sensorsRead();

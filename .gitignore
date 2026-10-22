@@ -23,3 +23,6 @@ Thumbs.db
 
 # Research paper source (not published)
 docs/paper/
+
+# Understand-Anything analysis output (regenerate with /understand)
+.ua/

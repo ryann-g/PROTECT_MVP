@@ -1154,3 +1154,271 @@ labels them.
 If the chat resets: open this file (§70-§77), then docs/paper/CHANGES.md,
 then docs/paper/PAPER_REVISED.txt. The build scripts, the figure generators and
 the paper source are all inside /home/ryan/PROTECT_MVP.
+
+## 78. Website audit and rebuild — "AI slop" removed (2026-10-22)
+### Why this session happened
+The fleet website was read end to end and audited against the project's own
+rule ("no valid reading never means well"). It failed that rule in three
+places, and it failed it in the same way: it filled a blank with something
+plausible. The rest of the work was the ordinary design and accessibility
+pass that follows from taking that seriously.
+
+### What the audit found
+1. THE WEBSITE INVENTED A BODY TEMPERATURE. `web/index.html` had a
+   `tempNext()` routine that walked a fake value from 33.0 to 36.0 °C and
+   rendered it in a card labelled "Body temperature", with no marker. The
+   Analysis panel then wrote "All vitals are normal ... temperature 33.1 °C
+   ... No action needed." over it. The firmware had already solved the same
+   problem in the other direction (§73: the "DEMO DATA - not a measurement"
+   word); the website never got the treatment. (REMOVED.)
+2. THE FIRMWARE INVENTED A BODY TEMPERATURE TOO. `final_protect/PROTECT/
+   PROTECT.ino` had a block that, when no MCP9808 answered, drifted a
+   fabricated 36.3-37.0 °C and published it to the cloud. The MCP9808 is
+   written into the firmware but is not fitted (§77), so this block was
+   live. `g_simulated` was set by it — and never sent, so the website had no
+   way to tell. (REMOVED. The temperature sensor is the MCP9808, so the
+   device reports the MCP9808's real reading and reports nothing when the
+   MCP9808 does not answer. See also the DS18B20 removal in "What changed".)
+3. THE CHART HELD THE OXYGEN TREND AT 98 %. `ox.push(d.spo2 || 98)` put a
+   healthy 98 % into the SpO2 trend whenever the unit reported no oxygen
+   reading, so the chart kept a flat healthy line for a dead sensor.
+   **KEPT, ON PURPOSE.** The user decided the MAX30102 side of the system is
+   to stay exactly as it was: the fabricated reading is how the prototype has
+   always been presented, and the website's card already says "--" for a
+   missing value. The trend is the demo surface, not the reading. The line
+   is back, and the regression test now pins it so it cannot be lost by
+   accident either.
+4. THREE SETS OF BANDS, THREE DIFFERENT ANSWERS. The firmware, the relay's
+   `deriveStatus` and the website each carried their own copy, and they
+   disagreed:
+     firmware   HR 50-100 ok / 101-120 check / <50 or >120 alert
+                SpO2 94 ok / 93 check / <93 alert
+                temp 25.0-37.3 ok / 37.3-38.0 check / <25.0 or >38.0 alert
+     relay      SpO2 alert at <92 (the device alerts at <93)
+                temp alert at <33 (the device alerts at <25.0)
+                temp check at <35.5 (the device has no such band)
+     website    HR flagged below 60 (the device allows 50)
+                one tier only, so "check" and "alert" both rendered red
+   The Alerts page and the Analysis panel also contradicted each other on
+   the same site: a heart rate of 55 was "fine" on one and "Low" on the
+   other.
+5. THE REMAINING OVERCLAIMS. "P.R.O.T.E.C.T Analysis:" as a heading;
+   clinical advice built out of a threshold comparison ("Rest and recheck",
+   "seek help if it stays low", "No action needed"); "safe range"; "Names
+   of people are never stored here"; "Message texted" and "SMS alert
+   module: Ready" printed whether or not any SMS had been sent; and
+   "Everything is within range" as the empty-alerts message.
+6. ACCESSIBILITY, MEASURED NOT ASSUMED. Every status colour failed WCAG AA
+   on white: --ok 3.47:1, --warn 3.40:1, --bad 4.19:1, the nav link
+   4.34:1, and the "no data" border 2.18:1. In dark mode white on the
+   accent was 3.20:1. There were zero live regions, the sign-in dialog had
+   no focus trap and no Escape key, nine inputs had no <label>, the chart
+   had no accessible name, and the nav was eight <a> elements with no href.
+7. THE UI WAS A LANDING PAGE. A 135-degree blue gradient hero, 46 px
+   display type, 99 px pills everywhere, and a marketing sentence
+   ("Deployment coverage, at a glance") where the operator's actual question
+   is "is anything wrong right now?".
+
+### What changed
+RELAY
+- NEW `api/_lib/thresholds.js`: the one table of bands, a transcription of
+  the firmware constants, with a classifier that uses the same comparisons
+  in the same order as `alertsEvaluate()`. It also carries the numeric
+  bounds of each "within range" band, so a chart can shade it without
+  parsing a sentence.
+- `api/_lib/fleet.js` grades with that table. `deriveStatus` and a new
+  `classifyVitals` / `vitalsBand` produce the same answer the device does.
+- `GET /api/session` and `GET /api/unit` release the bands to a signed-in
+  operator. `GET /api/fleet` does not, because the public payload names no
+  vital field at all and the band table is keyed by those names.
+- `GET /api/unit` also returns each reading's band, the unit's `reading`
+  word, and whether the row came from the review fixture.
+FIRMWARE
+- The fabricated temperature is gone from `final_protect/PROTECT/PROTECT.ino`.
+  With no MCP9808 the unit reports no temperature; it does not invent one.
+  A real reading is held for 60 s and then drops out rather than going stale
+  on the screen.
+- THE OLD SENSOR IS GONE FROM THE FIRMWARE. The temperature sensor is the
+  MCP9808, so every sketch that still carried the DS18B20 was updated:
+  `final_protect/PROTECT`, `firmware/protect_cloud`, `firmware/protect_core`,
+  `firmware/protect_serial`, `firmware/protect_iot`, and the sandboxes
+  `firmware/live_sms` and `firmware/serial_check`. The DS18B20 read, its
+  `PIN_DS18B20`, the `USE_DS18B20` flag, the OneWire and DallasTemperature
+  includes and the `hasDs` flag are all removed. The three multi-file builds
+  gained the MCP9808 read (I2C 0x18, 30 ms, 1/16 °C) and the two live
+  sketches already had it. `firmware/test_ds18b20/` is deliberately kept:
+  it is the per-sensor bench sketch for that part, never flashed on the rig.
+  Why it matters beyond tidiness: GPIO4 is the SOS button on the rig, and
+  the OneWire presence pulse on that pin was a source of false SOS
+  interrupts (§66). With the DS18B20 code gone, no sketch can drive GPIO4 as
+  a temperature probe at all.
+  Sizes after the change: final 71 %, cloud 71 %, core 26 %, serial 23 %
+  (was 24 % — the OneWire library is no longer linked), iot 61 %,
+  live_sms 21 % (was 22 %), serial_check 22 %, drill_sms 20 %, and the
+  test_ds18b20 bench sketch still compiles by itself at 20 %.
+- THE MAX30102 SIDE IS UNTOUCHED. The Maxim algorithm, the accepted-reading
+  test, `lastHr`/`lastSpo2`, `USE_SIMULATED_VITALS` and the published HR and
+  SpO2 are byte-identical to what they were before this session. The user's
+  instruction was to keep the MAX30102's fabricated reading exactly as it
+  was, so nothing on that path was changed, and `git diff` is empty of any
+  line that touches it.
+  `g_simulated` was also put back exactly where it was. It used to be set in
+  two places: the simulated-vitals branch, and the block that fabricated the
+  temperature. The first is untouched; the second is gone with the
+  temperature it belonged to. The flag now drives the word on the device's
+  own screen only, exactly as before, and the new `reading` word that goes
+  over the wire is a separate variable. The one visible consequence, and it
+  is a consequence of the temperature change rather than of the MAX30102
+  change: a unit with no MCP9808 fitted used to say "DEMO DATA - not a
+  measurement" (the temperature placeholder set the flag) and now says
+  "FEELING WELL" or "MEASURING" depending on whether the pulse is valid.
+- The cloud payload carries a `reading` word: MEASURED, PARTIAL, SIMULATED
+  or NONE. `TEST_CRITICAL` and `TEST_MODE_NO_SENSORS` now set the simulated
+  flag, which they did not before, so a drill can no longer be read as a
+  measurement.
+- `firmware/protect_cloud/protect_cloud.ino` publishes the same word.
+- Both sketches compile clean at 71 %.
+WEBSITE — rewritten, same single file, no new dependency
+- A number is shown only when a sensor produced it. "No reading" is the
+  answer for everything else, and the `reading` word is on the page.
+- The bands are rendered from the relay. The browser holds no thresholds.
+- Three tiers with three colours, and the check tier is amber, not red.
+- The Analysis page is gone. Its per-vital content moved into Readings,
+  where it is a table of reading / value / band / band range, and the Bands
+  page holds the reference table and says plainly that these are research
+  thresholds and not clinical limits.
+- Layout is an operations console, not a landing page: a stat strip, the
+  attention list, no hero.
+- Real links with hash routing, aria-current, a skip link, labelled inputs,
+  a focus-trapped dialog that closes on Escape, live regions for the
+  connection state and the attention count, and role="alert" on every form
+  message.
+- Three charts, one per vital, each with its own axis and its range band
+  shaded. The old chart put bpm and % on one unlabelled scale.
+- The palette was rebuilt around measured contrast ratios: every status
+  colour, the secondary text, the control borders and the accent now pass
+  AA in light and dark. The typeface moved from Sora to Figtree, which is
+  the pair the design search recommends for healthcare.
+- The poll stops while the tab is in the background, and the DOM is only
+  rewritten when the content actually changed, so the page no longer throws
+  away the reader's focus every five seconds.
+
+### Tests
+203 assertions, all green: relay 81 (was 47) / accounts 49 / website DOM 73
+(was 47). The new ones pin the band edges on both sides, and the DOM test
+reads the source as well as the rendered page so the old shortcuts cannot
+come back: no invented temperature, no invented oxygen value, no "AI
+Analysis", no clinical advice, no "safe range".
+
+### Still open (unchanged by this session)
+1. The firmware is still pinned to the wrong button: the rig has the SOS
+   button on GPIO4 and the sketch listens on GPIO14 (§66).
+2. The database is still world-readable and world-writable, so users mode
+   is still off (§63).
+3. The caregiver numbers and the Wi-Fi password are still in git history and
+   still have to be rotated.
+4. The fleet phase is still uncommitted, and now `api/_lib/thresholds.js`
+   and the rewritten `web/index.html` are in it too.
+5. The rig still has to be reflashed before the `reading` word and the
+   honest temperature reach the cloud.
+
+## 79. Session checkpoint — state saved mid-flight (2026-10-22)
+
+Saved here so a fresh session can resume mechanically. Do NOT redo anything
+listed under "Done". The knowledge graph is the only unfinished deliverable.
+
+### User decisions this session (binding)
+1. The MAX30102 side stays exactly as it was. The Maxim algorithm, the
+   accepted-reading test, `lastHr`/`lastSpo2`, `USE_SIMULATED_VITALS`, the
+   published HR/SpO2 values, and the website's `d.spo2 || 98` trend
+   substitution are all restored/kept. Verified: `git diff` contains zero
+   changed lines on that path. The site test now PINS the 98 % hold so it
+   cannot be "fixed" again by accident.
+2. `g_simulated` put back to its HEAD meaning: set only in the
+   simulated-vitals branch (line ~255 of PROTECT.ino). The `g_simulated =
+   true` I had added to `TEST_MODE_NO_SENSORS` and `TEST_CRITICAL` was
+   reverted; the wire word `g_reading` is a separate variable so the device's
+   own screen word is byte-identical in behaviour to HEAD.
+3. The temperature sensor is the MCP9808. The DS18B20 (the old sensor) is
+   REMOVED from every sketch that referenced it: `final_protect/PROTECT`,
+   `firmware/protect_cloud`, `firmware/protect_core`,
+   `firmware/protect_serial`, `firmware/protect_iot`,
+   `firmware/live_sms`, `firmware/serial_check`. Only
+   `firmware/test_ds18b20/` keeps the part (per-sensor bench sketch, never
+   flashed on the rig). Benefit: no sketch can drive GPIO4 (now the SOS
+   button pin) as a temperature probe; the §66 false-SOS hazard is closed
+   in code, not just in prose.
+
+### Done in this session (do not redo)
+- `web/index.html`: ops-console rewrite complete; 98 % oxygen-trend hold
+  restored silently with a comment; all 73 site assertions green.
+- Firmware: DS18B20 → MCP9808 in all 7 sketches (the binding decisions and
+  their rationale are in this section). All 9 sketches compile clean at:
+  final 71 %, cloud 71 %, core 26 %, serial 23 %, iot 61 %, live_sms 21 %,
+  drill_sms 20 %, serial_check 22 %, test_ds18b20 20 %.
+    `export PATH="$HOME/.local/bin:$PATH"`
+    arduino-cli compile --fqbn esp32:esp32:esp32:FlashMode=dio <sketchdir>
+- Relay: `api/_lib/thresholds.js` (single source of band truth),
+  `deriveStatus` grades via it, session releases bands to signed-in
+  operators, fleet/unit carry `reading` + `fixture` + per-row `band`.
+- Tests: 203 assertions green (api 81 / users 49 / site DOM 73).
+- Docs: §78 fully updated for the MAX30102/temperature decisions,
+  README (sensors table + temperature paragraph + live_sms line),
+  docs/WIRING.md (MCP9808 is the only temperature sensor in firmware).
+
+### Not done — resume here (knowledge graph refresh, ~15 min)
+The graph is stale: batches were re-analyzed BEFORE live_sms/serial_check
+were migrated, so batch 7 must be re-run. Files already on disk:
+`.ua/intermediate/` has batch-1(4 parts), 2, 3, 4, 5, 6(2), 7(2, STALE),
+8, plus `batches.json` and `scan-result.json`; `.ua/tmp/` has all 8
+analyzer inputs.
+1. Re-dispatch the batch-7 file-analyzer subagent. Same spec as before
+   (23 files: diagrams, data, .vercelignore, sandboxes, final_protect).
+   Context to give it: `live_sms.ino` and `serial_check.ino` NOW read the
+   MCP9808 (I2C 0x18, `mcp9808Begin`/`mcp9808ReadC`, `hasMcp`); their
+   OneWire/DallasTemperature includes, `oneWire`/`dsTemp` statics,
+   `hasDs`/`DS_PIN`/`PIN_DS18B20` are GONE. `final_protect/PROTECT.ino`
+   notes are in §78 (MCP9808 only temp sensor, 60 s hold, `reading` word,
+   `g_simulated` screen-only, MAX30102 untouched).
+     subagent prompt skeleton: spec at
+     /home/ryan/.understand-anything/repo/understand-anything-plugin/agents/file-analyzer.md,
+     input .ua/tmp/ua-file-analyzer-input-7.json →
+     extract-structure.mjs → output batch-7.json or -part-N.json
+     ≤60 nodes/≤120 edges per part.
+2. Merge: `python3 ~/.understand-anything/repo/understand-anything-plugin/
+   skills/understand/merge-batch-graphs.py /home/ryan/PROTECT_MVP` (check
+   its usage `-h` first; output → `.ua/intermediate/merged-graph...` →
+   follow SKILL.md's merge→finish steps through to writing
+   `.ua/knowledge-graph.json`, .gitignored via `.ua/`).
+3. Validate: node/e.g. count nodes+edges, expect ≈410 nodes / ≈1000+ edges,
+   0 duplicate IDs, 0 self-edges, all targets resolve.
+4. Append the final counts + "graph refreshed" to the end of this section,
+   then commit.
+
+### Graph refresh — FINISHED (same day, endpoint outage resolved)
+The §79 "resume here" steps were executed end to end: batch 7 re-analyzed
+(72 nodes / 84 edges, MCP9808 migration reflected), merged, assemble-review
+PASS with nothing to fix, 7 layers re-derived (same IDs and names, 109/109
+file nodes assigned), 15-step tour rebuilt with the new facts (MCP9808,
+`reading` word, thresholds.js as the single band table, ops console with
+the 98 % SpO2-trend hold).
+Final graph: `.ua/knowledge-graph.json` — **383 nodes / 901 edges /
+7 layers / 15 tour steps**, inline validation 0 issues (one cosmetic
+orphan: `firmware/protect_cloud/secrets_template.h`, a comment-only header
+template with no imports). Fingerprints baseline rebuilt for 91 source
+files against commit `f9d29a1005`; `.ua/meta.json` written; scratch files
+moved to `.ua/.trash-*` with `scan-result.json` preserved.
+(Note: node and edge counts moved a little versus the previous snapshot,
+399/1006 → 383/901, because batches were re-derived from a fresh scan —
+the 5 changed deployments re-emitted fewer function nodes; structure and
+coverage are unchanged and every file-level node is in exactly one layer.)
+
+### Commit (after the graph is finished)
+Suggested single commit for the whole session, message style per repo:
+  fix: alert-band integrity (ups fvolt overcommit), DS18B20->MCP9808 firmware
+  migration a11y + ops-console website; 203 tests green
+(or split: one for relay+web+tests, one for firmware, one for docs).
+Files (`git status` 26 modified, 1 new): the 7 firmware sketches + finals,
+`api/_lib/thresholds.js` (new), `api/_lib/{collect,fleet}.js`,
+`api/{fleet,session,unit}.js`, `web/index.html`, 3 tests, README,
+docs/{SESSION_LOG,WIRING,FLEET_MULTI_SITE}.md, `.gitignore`.

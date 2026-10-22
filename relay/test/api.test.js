@@ -280,6 +280,76 @@ function cookieOf(res) {
   check('a current legacy node is left alone (no write amplification)',
     writes.filter((w) => w.path === 'PROTECT/sensors').length === beforeSecond);
 
+  // ---- the alert bands ----------------------------------------------------
+  // The bands live in one table (api/_lib/thresholds.js) and the firmware is
+  // built from the same numbers. These checks pin the edges, so a band can
+  // never drift without a test failing.
+  console.log('\n-- alert bands --');
+  const th = require('../../api/_lib/thresholds.js');
+
+  check('a heart rate inside the range is ok', th.classify('heart_rate', 78) === 'ok');
+  check('a heart rate of 50 is ok', th.classify('heart_rate', 50) === 'ok');
+  check('a heart rate of 100 is ok', th.classify('heart_rate', 100) === 'ok');
+  check('a heart rate of 101 needs a check', th.classify('heart_rate', 101) === 'check');
+  check('a heart rate of 120 needs a check', th.classify('heart_rate', 120) === 'check');
+  check('a heart rate of 121 is an alert', th.classify('heart_rate', 121) === 'alert');
+  check('a heart rate of 49 is an alert', th.classify('heart_rate', 49) === 'alert');
+
+  check('an SpO2 of 94 is ok', th.classify('spo2', 94) === 'ok');
+  check('an SpO2 of 93 needs a check', th.classify('spo2', 93) === 'check');
+  check('an SpO2 of 92 is an alert', th.classify('spo2', 92) === 'alert');
+
+  check('a temperature of 25.0 is ok', th.classify('temperature', 25.0) === 'ok');
+  check('a temperature of 37.3 is ok', th.classify('temperature', 37.3) === 'ok');
+  check('a temperature of 37.4 needs a check', th.classify('temperature', 37.4) === 'check');
+  check('a temperature of 38.0 needs a check', th.classify('temperature', 38.0) === 'check');
+  check('a temperature of 38.1 is an alert', th.classify('temperature', 38.1) === 'alert');
+  check('a temperature of 24.9 is an alert', th.classify('temperature', 24.9) === 'alert');
+
+  check('a value of 0 is never graded', th.classify('heart_rate', 0) === 'ok');
+  check('a temperature outside the body range is not a reading',
+    th.validTemp(29.9) === false && th.validTemp(42.1) === false && th.validTemp(85) === false);
+  check('a temperature inside the body range is a reading', th.validTemp(36.4) === true);
+
+  const pub = th.publicThresholds();
+  check('the published bands name the heart rate limits',
+    pub.heart_rate.ranges.ok === '50–100 bpm', pub.heart_rate.ranges.ok);
+  check('the published bands name the oxygen limits',
+    pub.spo2.ranges.alert === 'below 93 %', pub.spo2.ranges.alert);
+  check('the published bands name the temperature limits',
+    pub.temperature.ranges.ok === '25.0–37.3 °C', pub.temperature.ranges.ok);
+  check('the published bands carry the numeric range for the chart',
+    pub.heart_rate.band.min === 50 && pub.heart_rate.band.max === 100);
+
+  // The relay and the website must grade a reading the same way.
+  check('the relay agrees with the band table on an alert reading',
+    fleetLib.deriveStatus({ heart_rate: 125, spo2: 96, temperature: 36.4 }) === 'ALERT');
+  check('the relay agrees with the band table on a check reading',
+    fleetLib.deriveStatus({ heart_rate: 110, spo2: 96, temperature: 36.4 }) === 'CHECK');
+  check('the relay agrees with the band table on a normal reading',
+    fleetLib.deriveStatus({ heart_rate: 78, spo2: 96, temperature: 36.4 }) === 'OK');
+  check('the relay treats a low oxygen reading as an alert',
+    fleetLib.deriveStatus({ heart_rate: 78, spo2: 92, temperature: 36.4 }) === 'ALERT',
+    fleetLib.deriveStatus({ heart_rate: 78, spo2: 92, temperature: 36.4 }));
+  check('the relay reports no data when nothing was measured',
+    fleetLib.deriveStatus({ heart_rate: 0, spo2: 0, temperature: 0 }) === 'NODATA');
+
+  // ---- the bands are not in the public payload ----------------------------
+  res = await call(fleetHandler, { method: 'GET' });
+  check('the public payload still names no vital field',
+    res.body.indexOf('heart_rate') === -1 && res.body.indexOf('spo2') === -1 && res.body.indexOf('temperature') === -1);
+  res = await call(sessionHandler, { method: 'GET' });
+  check('a visitor is not given the alert bands', res.json().thresholds === undefined);
+  res = await call(sessionHandler, { method: 'GET', headers: { cookie: session } });
+  check('a signed-in operator is given the alert bands', !!res.json().thresholds);
+
+  res = await call(unitHandler, { method: 'GET', query: { id: 'ICN-01' }, headers: { cookie: session } });
+  const unitBody = res.json();
+  check('the unit detail carries the bands of each reading', !!unitBody.bands);
+  check('the unit detail carries the alert bands', !!unitBody.thresholds);
+  check('the unit detail reports how the unit describes its numbers',
+    typeof unitBody.reading === 'string' && unitBody.reading.length > 0);
+
   // ---- misc ---------------------------------------------------------------
   console.log('\n-- misc --');
   res = await call(healthHandler, { method: 'GET' });

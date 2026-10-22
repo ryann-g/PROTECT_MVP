@@ -82,6 +82,8 @@ async function collect(now) {
 // Resolve one device for the operator detail view.
 // Falls back to the preview fixture and then to the legacy single node, so a
 // unit is always reachable before the firmware is flashed.
+// The returned `fixture` flag says whether the row came from the database or
+// from the review fixture, so the browser can label it.
 async function resolveDevice(id) {
   let sensors = null;
   let history = null;
@@ -97,13 +99,13 @@ async function resolveDevice(id) {
     } catch (err) {
       history = null;
     }
-    return { sensors, history };
+    return { sensors, history, fixture: false };
   }
 
   if (cfg.preview) {
     const fixture = previewDevices(Date.now());
     if (fixture[id]) {
-      return { sensors: fixture[id].sensors, history: fixture[id].history || null };
+      return { sensors: fixture[id].sensors, history: fixture[id].history || null, fixture: true };
     }
   }
 
@@ -113,11 +115,12 @@ async function resolveDevice(id) {
       return {
         sensors: Object.assign({}, legacy, { device: id, site: cfg.legacySiteId }),
         history: await db.read('PROTECT/history'),
+        fixture: false,
       };
     }
   }
 
-  return { sensors: null, history: null };
+  return { sensors: null, history: null, fixture: false };
 }
 
 module.exports = { collect, readDevices, readRegistry, resolveDevice };

@@ -44,7 +44,14 @@ module.exports = async function handler(req, res) {
         site: site.siteId,
         label: site.name || `Unregistered site (${site.siteId})`,
         status: site.status,
-        devices: site.units.map((u) => ({ id: u.id, status: u.status, online: u.online, lastSeen: u.lastSeen })),
+        devices: site.units.map((u) => ({
+          id: u.id,
+          status: u.status,
+          online: u.online,
+          lastSeen: u.lastSeen,
+          // A unit that is not in the database came from the review fixture.
+          fixture: !realDevices[u.id],
+        })),
       }));
     }
 
