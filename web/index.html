@@ -131,17 +131,19 @@ main{max-width:1200px;margin:0 auto;padding:22px 20px 64px}
 .place-name{font-size:1rem;font-weight:600;line-height:1.3;flex:1;min-width:0;text-wrap:balance}
 .place-zone{color:var(--mute);font-size:.8125rem;margin-top:2px}
 .place-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px;font-size:.8125rem;color:var(--mute);font-variant-numeric:tabular-nums}
+.place-meta .chip{margin-left:auto}
 .units{margin-top:12px;border-top:1px solid var(--line);padding-top:8px}
-.unit-row{display:flex;align-items:center;gap:10px;padding:2px 0;font-size:.8125rem}
+.unit-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:8px;align-items:center;padding:2px 0;font-size:.8125rem}
 .unit-row .uid{
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.8125rem;font-weight:600;
-  color:var(--accent);text-decoration:none;display:inline-flex;align-items:center;min-height:34px;
+  color:var(--accent);text-decoration:none;display:block;min-height:34px;line-height:30px;
+  min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   padding:2px 6px;margin-left:-6px;border-radius:6px;
   transition:background-color var(--t),color var(--t);
 }
 .unit-row .uid:hover{background:var(--accent-soft);text-decoration:underline}
-.unit-row .ust{margin-left:auto;font-size:.75rem}
-.unit-row .ago{color:var(--mute);font-variant-numeric:tabular-nums;min-width:64px;text-align:right}
+.unit-row .ust{font-size:.75rem}
+.unit-row .ago{color:var(--mute);font-variant-numeric:tabular-nums;min-width:64px;text-align:right;justify-self:end}
 .place-note{color:var(--check);font-size:.8125rem;margin-top:8px;display:flex;gap:6px;align-items:flex-start}
 
 /* ---------- chips ---------- */
@@ -194,14 +196,15 @@ main{max-width:1200px;margin:0 auto;padding:22px 20px 64px}
 
 /* ---------- reading cards ---------- */
 .readings{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:10px}
-.reading{background:var(--surf);border:1px solid var(--line);border-radius:var(--r-md);padding:13px 14px;box-shadow:var(--shadow)}
+.reading{display:flex;flex-direction:column;background:var(--surf);border:1px solid var(--line);border-radius:var(--r-md);padding:13px 14px;box-shadow:var(--shadow)}
 .reading .k{font-size:.75rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--mute)}
-.reading .v{font-family:Figtree,Inter,sans-serif;font-size:1.75rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2;margin-top:3px;display:flex;align-items:baseline;gap:5px}
+.reading .v{font-family:Figtree,Inter,sans-serif;font-size:1.75rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2;margin-top:3px;display:flex;align-items:baseline;gap:5px;min-height:2.1rem}
 .reading .v .u{font-size:.875rem;font-weight:500;color:var(--mute)}
 .reading .v.is-none{font-size:1.125rem;font-weight:600;color:var(--nodata)}
 .reading .v.ok{color:var(--ok)} .reading .v.check{color:var(--check)} .reading .v.alert{color:var(--alert)}
+.reading .v.sv{font-size:1.125rem;align-items:center}
 .reading .s{font-size:.75rem;color:var(--mute);margin-top:5px;font-variant-numeric:tabular-nums}
-.reading .band{margin-top:8px}
+.reading .band{margin-top:auto;padding-top:8px}
 
 /* ---------- charts ---------- */
 .charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
@@ -858,7 +861,7 @@ function placeCard(s, withUnits) {
   h += '</div>' + statusChip(s.status) + '</div>';
   h += '<div class="place-meta"><span>' + num(s.online) + ' of ' + num(s.units) + ' unit' + (num(s.units) === 1 ? '' : 's') + ' online</span>';
   h += '<span aria-hidden="true">·</span><span>last seen ' + esc(ago(s.lastSeen)) + '</span>';
-  if (S.preview) h += '<span class="chip flag">Fixture</span>';
+  if (S.preview) h += '<span class="chip flag">Demo data</span>';
   h += '</div>';
   if (s.needsNaming) {
     h += '<p class="place-note"><span aria-hidden="true">•</span><span>No place name on file. An operator can add one on the Sites page.</span></p>';
@@ -869,7 +872,7 @@ function placeCard(s, withUnits) {
       h += '<div class="unit-row">';
       h += '<a class="uid" href="#readings" data-unit="' + esc(u.id) + '">' + esc(u.id) + '</a>';
       h += '<span class="ust">' + statusChip(u.status) + '</span>';
-      if (u.fixture) h += '<span class="chip flag">Fixture</span>';
+      if (u.fixture) h += '<span class="chip flag">Demo data</span>';
       h += '<span class="ago">' + esc(ago(u.lastSeen)) + '</span>';
       h += '</div>';
     });
@@ -914,6 +917,23 @@ function renderSites() {
   } else {
     setHTML(grid, S.sites.map(function (s) { return placeCard(s, true); }).join(''));
   }
+}
+
+// The unit publishes short words on the wire (OKAY, FALL DETECTED, ACTIVE,
+// MESSAGE SENT). The page shows the known ones in plain words, and keeps the
+// unit's own word in the note so nobody has to take the wording on trust.
+var WIRE_WORDS = {
+  status: { OKAY: 'Running normally', 'FALL DETECTED': 'Fall detected' },
+  reading: { MEASURED: 'Measured', PARTIAL: 'Partial reading', SIMULATED: 'Demo data — not a measurement', NONE: 'No reading', UNVERIFIED: 'Unverified' },
+  gsm: { 'MESSAGE SENT': 'Message sent', ACTIVE: 'Ready' }
+};
+function wireWord(kind, raw) {
+  var w = String(raw == null ? '' : raw).trim();
+  if (!w) return { big: 'No report yet', raw: '' };
+  return { big: (WIRE_WORDS[kind] || {})[w] || w, raw: w };
+}
+function wordNote(w) {
+  return w.raw ? 'Unit&rsquo;s word: &ldquo;' + esc(w.raw) + '&rdquo;' : 'Nothing published yet';
 }
 
 // A reading card. The value is shown only when there is one.
@@ -1017,19 +1037,20 @@ function renderReadings() {
   var tpLevel = bands.temperature || 'nodata';
 
   var html = '';
+  var bandOrNoReading = '<span class="chip nodata">No reading</span>';
   html += readingCard('heart_rate', 'Heart rate', d.bpm, 'bpm', hrLevel,
-    d.bpm > 0 ? levelChip(hrLevel, bandWord(hrLevel)) : '',
-    d.bpm > 0 ? 'Band: ' + bandDescription('heart_rate', hrLevel) : 'The unit has no valid pulse reading.');
+    d.bpm > 0 ? levelChip(hrLevel, bandWord(hrLevel)) : bandOrNoReading,
+    d.bpm > 0 ? (bandDescription('heart_rate', hrLevel) ? 'Checked against ' + bandDescription('heart_rate', hrLevel) : 'The relay gave no band to check against.') : 'The unit has no valid pulse reading.');
   html += readingCard('spo2', 'SpO₂', d.spo2, '%', oxLevel,
-    d.spo2 > 0 ? levelChip(oxLevel, bandWord(oxLevel)) : '',
-    d.spo2 > 0 ? 'Band: ' + bandDescription('spo2', oxLevel) : 'The unit has no valid oxygen reading.');
+    d.spo2 > 0 ? levelChip(oxLevel, bandWord(oxLevel)) : bandOrNoReading,
+    d.spo2 > 0 ? (bandDescription('spo2', oxLevel) ? 'Checked against ' + bandDescription('spo2', oxLevel) : 'The relay gave no band to check against.') : 'The unit has no valid oxygen reading.');
   html += readingCard('temperature', 'Body temperature', d.temp, '°C', tpLevel,
-    d.temp > 0 ? levelChip(tpLevel, bandWord(tpLevel)) : '',
-    d.temp > 0 ? 'Band: ' + bandDescription('temperature', tpLevel) : 'No temperature sensor is answering.');
+    d.temp > 0 ? levelChip(tpLevel, bandWord(tpLevel)) : bandOrNoReading,
+    d.temp > 0 ? (bandDescription('temperature', tpLevel) ? 'Checked against ' + bandDescription('temperature', tpLevel) : 'The relay gave no band to check against.') : 'No temperature sensor is answering.');
 
   var fallLevel = d.fall ? 'alert' : 'ok';
   html += '<div class="reading"><div class="k">Fall</div>';
-  html += '<div class="v ' + fallLevel + '" style="font-size:1.125rem">' + (d.fall ? 'Fall detected' : 'None detected') + '</div>';
+  html += '<div class="v ' + fallLevel + ' sv">' + (d.fall ? 'Fall detected' : 'None detected') + '</div>';
   html += '<div class="s">Reported by the unit</div>';
   html += '<div class="band">' + levelChip(fallLevel, d.fall ? 'Alert' : 'Within range') + '</div></div>';
 
@@ -1042,13 +1063,14 @@ function renderReadings() {
     overall = levels.indexOf('alert') > -1 ? 'alert' : levels.indexOf('check') > -1 ? 'check' : 'ok';
   }
   html += '<div class="reading"><div class="k">Status</div>';
-  html += '<div class="v ' + overall + '" style="font-size:1.125rem">' + (overall === 'nodata' ? 'No reading' : bandWord(overall)) + '</div>';
+  html += '<div class="v ' + overall + ' sv">' + (overall === 'nodata' ? 'No reading' : bandWord(overall)) + '</div>';
   html += '<div class="s">Graded against the alert bands</div>';
   html += '<div class="band">' + (overall === 'nodata' ? '<span class="chip nodata">No reading</span>' : levelChip(overall, bandWord(overall))) + '</div></div>';
 
-  html += '<div class="reading"><div class="k">SMS module</div>';
-  html += '<div class="v" style="font-size:1.125rem">' + esc(d.gsm || 'No report') + '</div>';
-  html += '<div class="s">The state the unit published</div></div>';
+  var gw = wireWord('gsm', d.gsm);
+  html += '<div class="reading"><div class="k">Text messages</div>';
+  html += '<div class="v sv">' + esc(gw.big) + '</div>';
+  html += '<div class="s">' + wordNote(gw) + '</div></div>';
   setHTML(cards, html);
 
   // Band check table
@@ -1207,10 +1229,13 @@ function renderConnection() {
   html += '<div class="reading"><div class="k">Relay</div><div class="v ' + (S.relayUp ? 'ok' : 'alert') + '" style="font-size:1.125rem">' + (S.relayUp ? 'Online' : 'Offline') + '</div><div class="s">Path from the units to this page</div></div>';
   html += '<div class="reading"><div class="k">Operator session</div><div class="v ' + (S.operator ? 'ok' : '') + '" style="font-size:1.125rem">' + (S.operator ? 'Signed in' : 'Locked') + '</div><div class="s">Readings need a session</div></div>';
   html += '<div class="reading"><div class="k">Places</div><div class="v" style="font-size:1.125rem">' + (S.sites.length || '–') + '</div><div class="s">Sites the relay knows</div></div>';
-  html += '<div class="reading"><div class="k">Selected unit</div><div class="v" style="font-size:1.125rem">' + esc(S.selected || '–') + '</div><div class="s">The unit this page is showing</div></div>';
-  html += '<div class="reading"><div class="k">Reported status</div><div class="v" style="font-size:1.125rem">' + esc(d.status || 'No report') + '</div><div class="s">The status the unit published</div></div>';
-  html += '<div class="reading"><div class="k">Reading</div><div class="v" style="font-size:1.125rem">' + esc(d.reading || '–') + '</div><div class="s">How the unit describes its numbers</div></div>';
-  html += '<div class="reading"><div class="k">SMS module</div><div class="v" style="font-size:1.125rem">' + esc(d.gsm || 'No report') + '</div><div class="s">The state the unit published</div></div>';
+  var stw = wireWord('status', d.status);
+  var rdw = wireWord('reading', d.reading);
+  var gsw = wireWord('gsm', d.gsm);
+  html += '<div class="reading"><div class="k">Selected unit</div><div class="v sv">' + esc(S.selected || '–') + '</div><div class="s">The unit this page is showing</div></div>';
+  html += '<div class="reading"><div class="k">Unit status</div><div class="v sv">' + esc(stw.big) + '</div><div class="s">' + wordNote(stw) + '</div></div>';
+  html += '<div class="reading"><div class="k">Reading quality</div><div class="v sv">' + esc(rdw.big) + '</div><div class="s">' + wordNote(rdw) + '</div></div>';
+  html += '<div class="reading"><div class="k">Text messages</div><div class="v sv">' + esc(gsw.big) + '</div><div class="s">' + wordNote(gsw) + '</div></div>';
   setHTML(cards, html);
 }
 
