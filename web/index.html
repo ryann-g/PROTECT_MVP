@@ -122,11 +122,16 @@ main{max-width:1200px;margin:0 auto;padding:22px 20px 64px}
 
 /* ---------- place cards ---------- */
 .places{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:12px}
-.place{background:var(--surf);border:1px solid var(--line);border-radius:var(--r-lg);padding:14px 16px 14px 18px;border-left:4px solid var(--nodata)}
-.place.s-ok{border-left-color:var(--ok)}
-.place.s-check{border-left-color:var(--check)}
-.place.s-alert{border-left-color:var(--alert)}
-.place.s-offline,.place.s-nodata{border-left-color:var(--edge)}
+/* Place cards: draw the 1px outline and the 4px accent bar as box-shadow
+   layers instead of borders — Chromium anti-aliases a 4px border joined to
+   1px borders around a rounded corner with a dark seam on the card flanks
+   (desktop GPU rasterizer, visible at fractional zoom/DPI). Shadow layers
+   never form border trapezoids and stay pixel-clean on every rasterizer. */
+.place{--bar:var(--nodata);background:var(--surf);border-radius:var(--r-lg);padding:14px 16px 14px 18px;box-shadow:0 0 0 1px var(--line),inset 4px 0 0 var(--bar)}
+.place.s-ok{--bar:var(--ok)}
+.place.s-check{--bar:var(--check)}
+.place.s-alert{--bar:var(--alert)}
+.place.s-offline,.place.s-nodata{--bar:var(--edge)}
 .place-top{display:flex;align-items:flex-start;gap:10px}
 .place-name{font-size:1rem;font-weight:600;line-height:1.3;flex:1;min-width:0;text-wrap:balance}
 .place-zone{color:var(--mute);font-size:.8125rem;margin-top:2px}
